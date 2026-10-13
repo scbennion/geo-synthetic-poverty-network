@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6537a2b2-1e60-49d5-8a3f-fcb4b4e7b39d" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "scbennion"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/scbennion/geo-synthetic-poverty-network",
+    "accountId": "c054bb08-3a2a-404f-8ccb-77c37e669d56"
+  }
+}]]></component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.1039021566942537E-214" />
+      <entry key="MS500" value="1.6165387382125955E-43" />
+      <entry key="S2" value="2.00514844171369E-11" />
+      <entry key="S5" value="5.258460486901396E-5" />
+      <entry key="S10" value="0.007253960994326851" />
+      <entry key="S30" value="0.32002093997988135" />
+      <entry key="S60" value="3.318945298385745" />
+      <entry key="M2" value="22.07883959743769" />
+      <entry key="M5" value="130.15763654278868" />
+      <entry key="M10" value="285.06526711152975" />
+      <entry key="M15" value="379.0896975540372" />
+      <entry key="M30" value="510.0233703357431" />
+      <entry key="H1" value="594.1130395567903" />
+      <entry key="H2" value="641.8952240755513" />
+      <entry key="H4" value="667.3819263278531" />
+      <entry key="D1" value="689.4828321770389" />
+      <entry key="W1" value="693.3526808749983" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.000000000000005" />
+      <entry key="S10" value="1.0000000713357249" />
+      <entry key="S30" value="1.004147334135752" />
+      <entry key="S60" value="1.0643997991903091" />
+      <entry key="M2" value="1.2537711551581645" />
+      <entry key="M5" value="1.5777991553391135" />
+      <entry key="M10" value="1.760131011957224" />
+      <entry key="M15" value="1.8328989237036084" />
+      <entry key="M30" value="1.9126329622052929" />
+      <entry key="H1" value="1.9553182517911472" />
+      <entry key="H2" value="1.9774038325027925" />
+      <entry key="H4" value="1.9886373614742632" />
+      <entry key="D1" value="1.9980971982076037" />
+      <entry key="W1" value="1.9997279492383118" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="2.7843737018014053E-9" />
+      <entry key="MS500" value="0.019451159927846406" />
+      <entry key="S2" value="0.3734533642979297" />
+      <entry key="S5" value="0.6744166341368555" />
+      <entry key="S10" value="0.8284358013259779" />
+      <entry key="S30" value="1.2600835016655758" />
+      <entry key="S60" value="4.347641727930923" />
+      <entry key="M2" value="23.309271499109737" />
+      <entry key="M5" value="131.72095252083142" />
+      <entry key="M10" value="286.8157477628005" />
+      <entry key="M15" value="380.915291222393" />
+      <entry key="M30" value="511.9317704240486" />
+      <entry key="H1" value="596.0660599460251" />
+      <entry key="H2" value="643.8714280164381" />
+      <entry key="H4" value="669.3699502236113" />
+      <entry key="D1" value="691.4808251829458" />
+      <entry key="W1" value="695.3523938909719" />
+    </decayedShown>
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 6,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3Kf17rxfAb24cQiTCx4qDUYgwZU" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/Users/sbennion/Desktop/Work/geo-synthetic-poverty-network",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "python.packages.toolwindow.project.migrated.to.right.top.v2": "true",
+    "to.speed.mode.migration.done": "true"
+  },
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "GitIgnore"
+    ]
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-eff1e8def5f5-5bd6d13a2a75-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-262.10315.174" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6537a2b2-1e60-49d5-8a3f-fcb4b4e7b39d" name="Changes" comment="" />
+      <created>1791933643250</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1791933643250</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
