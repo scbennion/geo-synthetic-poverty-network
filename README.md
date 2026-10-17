@@ -17,6 +17,7 @@ This guide describes the source files currently stored in this Git repository. I
 - [How employment information is compiled](#how-employment-information-is-compiled)
 - [How school and childcare information is processed](#how-school-and-childcare-information-is-processed)
 - [How households are constructed](#how-households-are-constructed)
+- [How homes and workplaces are placed on roads](#how-homes-and-workplaces-are-placed-on-roads)
 - [How social connections are generated](#how-social-connections-are-generated)
 - [Data layout and execution requirements](#data-layout-and-execution-requirements)
 - [Known handoff and execution gaps](#known-handoff-and-execution-gaps)
@@ -57,7 +58,7 @@ The state driver loads prepared inputs, loops over populated census tracts, and 
 | [`src/preprocess_data.py`](src/preprocess_data.py) | Download and preparation helpers, including commuting and workplace calculations. |
 | [`src/ctreate_individuals.py`](src/ctreate_individuals.py) | Generate people from tract age/sex counts. |
 | [`src/assign_household.py`](src/assign_household.py) | Allocate those people to household categories and group quarters. |
-| [`src/create_space.py`](src/create_space.py) | Sample home and workplace points along selected roads intersecting the tract. These are generated locations, not verified addresses. |
+| [`src/create_space.py`](src/create_space.py) | Generate home and workplace coordinates. See the shared [road-placement section below](#how-homes-and-workplaces-are-placed-on-roads). |
 | [`src/assign_workplace.py`](src/assign_workplace.py) | Assign adult workers using counts of jobs linking home tracts to work tracts and probabilities for synthetic workplaces. See the [employment section below](#how-employment-information-is-compiled). |
 | [`src/assign_education_site.py`](src/assign_education_site.py) | Assign children to schools or daycare using age, proximity, and a comparison between supplied site counts and enrollment. See the education section below. |
 | [`src/tools.py`](src/tools.py) | Collect outputs, flag urban residence, and perform tract-level checks. |
@@ -141,6 +142,8 @@ The resulting `WP_CNT` is a modeled number of workplaces, not a count of workers
 `__assign_workplaces__` selects the commuting rows for a person's home tract and uses the destination counts to allocate jobs among synthetic residents aged 18+. If there are more jobs than available adults, it samples destinations for all adults; otherwise it randomly selects enough adults to fill the available counts. It does not assign employment using each person's observed occupation, income, or labor-force status.
 
 `generate_workplace_id` then selects a synthetic workplace in the destination tract using the national JSON's `WP_CNT` and `WP_PROBA` (workplace-selection probabilities). IDs have the form `<destination-tract>w<workplace-number>`. Missing/zero workplace metadata produces `wNotFound` or `wNone` suffixes, which need to be checked before network construction.
+
+Assigning a worker's workplace ID and generating that workplace's coordinates are separate operations. The shared [road-placement section](#how-homes-and-workplaces-are-placed-on-roads) explains the latter; the rules above determine job assignments, not street addresses.
 
 `src/tools.py::wp_proba` provides a helper that draws lognormal workplace weights and normalizes them to sum to one. However, the preprocessing drivers do not show a complete construction of the national `us_tract_number_work.json`, including its `WP_PROBA` values. Do not assume that loading this JSON reproduces its preparation. The synthesis driver also expects commuting files under `processed-data/od`, while the combining helper writes them under `interim-data/od`; that handoff must be resolved when reproducing preprocessing.
 
@@ -274,11 +277,48 @@ These are not fixed percentages of people assigned to each category: the number 
 
 The resulting `hhold` identifier records co-residence. It does not provide explicit parent/child or spouse identifiers for later intergenerational analysis.
 
+After membership is assigned, everyone sharing a household ID receives the same generated home point. See [road placement](#how-homes-and-workplaces-are-placed-on-roads) for how that point is selected; household composition and geographic placement are separate steps.
+
 ### What to validate
 
 Target household slots do not guarantee that every slot is populated or every category has its intended composition. Candidate shortages can leave empty selections or cause sampling failures. The synthesis driver catches tract exceptions, so completion and saved outputs must be checked against the error log and expected tract coverage.
 
 Inspect realized household sizes, ages and relationships, assignment completeness, group-quarters treatment, and agreement with independent reference counts. Household size directly affects how many network connections can be generated.
+
+## How homes and workplaces are placed on roads
+
+### Road data source and preparation
+
+The road-download helper points to the **US Census Bureau's [2020 TIGER/Line All Roads files](https://www2.census.gov/geo/tiger/TIGER2020/ROADS/)**. These geographic files contain road-line geometry and attributes such as road identifiers and classification codes. They describe roads, not public-transit schedules or observed trips.
+
+`richard_download_and_prepare_road_data` in [`src/preprocess_data.py`](src/preprocess_data.py) selects county ZIP files matching the state's geographic code, downloads them, and combines them into an intermediate state road file. [`clean_raod_with_grass.py`](code/0-preprocess/prepare-road/clean_raod_with_grass.py) specifies GRASS GIS cleaning operations to snap nearby vertices, split line crossings, remove duplicate features, and remove small angles. `process_interim_road_data` then packages the cleaned geometry, road identifiers (`LINEARID`), classification (`MTFCC`), and connected-component information as `<STATE>_road_cleaned.shp.zip` for synthesis. GRASS GIS is geographic-processing software; connected components identify groups of road segments connected to one another.
+
+This is the source and intended preparation path visible in the code, not an independently verified provenance record for the published OSF road files. The execution gaps listed below still apply. The synthesis stage uses the prepared road lines to place synthetic locations; it does not calculate travel times, transit service availability, or observed commuting routes along them.
+
+### Shared placement steps
+
+Both location functions in [`src/create_space.py`](src/create_space.py) use the prepared road dataset and a tract polygon. They select roads intersecting that tract, clip them to its boundary, retain supported line geometries, and remove duplicate coordinate sequences after rounding coordinates to six decimal places. The input `MTFCC` field is the Census **MAF/TIGER Feature Class Code**, identifying the type of road.
+
+### Road types and candidate locations
+
+| Road code | Road category | Home candidates | Workplace candidates |
+| --- | --- | --- | --- |
+| `S1400` | Local neighborhood roads, rural roads, and city streets | Points sampled along the clipped road geometry. | The first coordinate of each clipped geometry. |
+| `S1740` | Private roads for service vehicles, such as logging, oil-field, or ranch roads | Same treatment as `S1400`. | Same treatment as `S1400`. |
+| `S1200` | Secondary roads | Not selected for homes. | Points sampled along the clipped road geometry. |
+| `S1100` | Primary roads | Not selected. | Not selected by the implemented filter, despite comments mentioning primary roads. |
+
+**Homes:** `__create_home_location__` generates candidate points at distance intervals of `0.0005` along the selected `S1400`/`S1740` geometries, starting at that interval and stopping before the geometry's end. It randomly samples from the pooled candidates. The state driver requests `DP1_0132C + 1` locations: one per regular household slot plus one for the tract's shared group-quarters ID. The returned points are indexed by household ID and mapped onto people's home `geometry` fields.
+
+**Workplaces:** `__create_work_location__` generates candidates along `S1200` roads using intervals of `0.0002`, then adds the first coordinate from each selected `S1400`/`S1740` geometry. For a multi-part road, it uses the first coordinate of the first part. Although the variable is called `intersection_points`, the code does not calculate intersections between roads: these are geometry endpoints, which may also lie on the tract boundary after clipping. It samples `WP_CNT` points from the combined pool; local/private-road endpoints can supply locations when secondary-road candidates are unavailable. Points are indexed by workplace ID and saved in the workplace table, separate from people's home coordinates.
+
+### Shared assumptions and limitations
+
+- Both functions sample **with replacement**: distinct household or workplace IDs can receive identical coordinates. Household members share their household's point by design.
+- Intervals are measured in the input coordinate system's units. With longitude/latitude data, `0.0005` and `0.0002` are degrees, not fixed distances in meters. The functions do not project roads into a distance-based coordinate system first.
+- Sampling is uniform over pooled candidate points, not over road names, tracts, or parcels. Longer geometries generally contribute more interpolated candidates; workplaces also have the endpoint candidates described above.
+- These are synthetic points on roads, not building entrances or observed residential/business addresses. The functions do not check zoning, building footprints, parcel use, or whether a private service road actually has housing.
+- There is no general fallback to other road classes or arbitrary points inside the tract. If a function must generate locations but its candidate pool is empty, sampling can fail; inspect tract error logs and resulting coverage.
 
 ## How social connections are generated
 
