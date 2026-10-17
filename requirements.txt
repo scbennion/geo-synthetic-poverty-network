@@ -10,7 +10,7 @@ matplotlib
 seaborn
 scikit-learn
 jupyter
-notebook==6.5.6
+notebook==6.5.7
 jupyter_contrib_nbextensions
 jupyter_nbextensions_configurator
 autopep8
