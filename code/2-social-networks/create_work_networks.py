@@ -1,20 +1,24 @@
+import argparse
 import os
 from pathlib import Path
 import pandas as pd
 from loguru import logger
 from src.create_social_networks import create_network, to_csv
+from src.settings import RESULTS_DIR, state_codes
+from src.cli import add_geography_args, resolve_geography, us_run_name
 
 
-def create_us_work_network(folder_path):
+def create_us_work_network(folder_path, run_state_codes=state_codes, counties=None):
     try:
         # Ensuring the directory exists
         output_dir = Path(folder_path) / "1-us"
         output_dir.mkdir(parents=True, exist_ok=True)
-        work_nx_path = output_dir / "us_work_network.csv"
+        name = us_run_name(run_state_codes, counties)
+        work_nx_path = output_dir / f"{name}_work_network.csv"
 
         # Load population
         logger.info("Loading work population")
-        population_path = output_dir / "us_work_population.csv"
+        population_path = output_dir / f"{name}_work_population.csv"
         population = pd.read_csv(population_path)
 
         if not work_nx_path.exists():
@@ -30,7 +34,12 @@ def create_us_work_network(folder_path):
         logger.error(f"An error occurred: {e}")
 
 if __name__ == '__main__':
+    parser = add_geography_args(argparse.ArgumentParser(description='Create work network'))
+    args = parser.parse_args()
+    try:
+        run_state_codes, counties = resolve_geography(args)
+    except argparse.ArgumentTypeError as e:
+        parser.error(str(e))
     logger.info("Creating US Work Network...")
-    data_path = '../../data/results-data/'
-    create_us_work_network(data_path)
+    create_us_work_network(RESULTS_DIR, run_state_codes, counties)
     logger.info("Done!")

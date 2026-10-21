@@ -40,7 +40,9 @@ def to_csv(g, population, output_name):
         writer.writerows(col2)
 
 
-def create_networks_types(population, folder_path, state_abbreviation):
+def create_networks_types(population, folder_path, state_abbreviation, name=None):
+    # name: output file prefix, e.g. 'ut_c035' for a county run; defaults to the state
+    name = name or state_abbreviation
     directory_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks")
 
     # Check if the directory exists
@@ -48,7 +50,7 @@ def create_networks_types(population, folder_path, state_abbreviation):
         # Create the directory if it does not exist
         os.makedirs(directory_path)
 
-    daycare_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{state_abbreviation}_daycare_network.csv")
+    daycare_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_daycare_network.csv")
     if not Path(daycare_nx_path).exists():
         logger.info('Creating Daycare Network')
         select_pop = population[population.wp.str.contains('d')].set_index('id').copy()
@@ -61,7 +63,7 @@ def create_networks_types(population, folder_path, state_abbreviation):
     else:
         logger.info('Daycare Network already exists')
 
-    school_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{state_abbreviation}_school_network.csv")
+    school_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_school_network.csv")
     if not Path(school_nx_path).exists():
         logger.info('Creating School Network')
         select_pop = population[population.wp.str.contains('s')].set_index('id').copy()
@@ -74,7 +76,7 @@ def create_networks_types(population, folder_path, state_abbreviation):
     else:
         logger.info('School Network already exists')
 
-    hhold_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{state_abbreviation}_household_network.csv")
+    hhold_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_household_network.csv")
     if not Path(hhold_nx_path).exists():
         logger.info("Creating Household network...")
         logger.info(f"Population {len(population)}")

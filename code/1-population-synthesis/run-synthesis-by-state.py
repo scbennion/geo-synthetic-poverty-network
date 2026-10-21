@@ -9,6 +9,8 @@ from tqdm import tqdm
 #from tqdm.notebook import tqdm
 # Register tqdm with pandas
 tqdm.pandas()
+import argparse
+import sys
 import time
 
 #general packages
@@ -26,7 +28,8 @@ warnings.simplefilter('ignore', InsecureRequestWarning)
 
 from bs4 import BeautifulSoup
 from loguru import logger
-from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR, state_codes, state_dict
+from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
+from src.cli import add_geography_args, resolve_geography, in_counties, run_name
 #Synthesize Functions
 from src.ctreate_individuals import __create_individuals__
 from src.assign_household import __assign_household_order__
@@ -40,13 +43,14 @@ from src.tools import check_urban
 from src.tools import __verfication__
 from src.tools import __collect_results__
 
-logger.info(f'Start Running...')
 
-#tract_id_work = pd.read_csv('../data/processed-data/us_tract_number_work.csv')
-tract_id_work = pd.read_json('../../data/processed-data/us_tract_number_work.json', orient='records', lines=True)
-tract_id_work['GEOID'] = tract_id_work['GEOID'].astype(str)
-tract_id_work = tract_id_work.sort_values(by = 'GEOID').set_index('GEOID')
-logger.info(f"US Tract and Work Reading Done!")
+def load_tract_id_work():
+    #tract_id_work = pd.read_csv('../data/processed-data/us_tract_number_work.csv')
+    tract_id_work = pd.read_json(os.path.join(PROCESSED_DATA_DIR, 'us_tract_number_work.json'), orient='records', lines=True)
+    tract_id_work['GEOID'] = tract_id_work['GEOID'].astype(str)
+    tract_id_work = tract_id_work.sort_values(by = 'GEOID').set_index('GEOID')
+    logger.info(f"US Tract and Work Reading Done!")
+    return tract_id_work
 
 
 def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  # data
@@ -107,22 +111,34 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
     logger.info(f'{tract.name} now ended ({elapsed_time:.1f} secs)')
 
 if __name__ == '__main__':
+    parser = add_geography_args(argparse.ArgumentParser(description='Synthesize population by state'))
+    parser.add_argument('--dry-run', action='store_true',
+                        help='list the tracts that would be processed and exit')
+    args = parser.parse_args()
+    try:
+        run_state_codes, counties = resolve_geography(args)
+    except argparse.ArgumentTypeError as e:
+        parser.error(str(e))
+
+    logger.info(f'Start Running...')
+
     r_seed = 42
     random.seed(r_seed)
 
     #input data path
-    tract_path = '../../data/processed-data/census'
-    od_path = '../../data/processed-data/od'
-    road_path = '../../data/processed-data/road'
-    edu_path = '../../data/processed-data/edu'
-    urban_path = '../../data/processed-data/urban'
-    
-    #saving path
-    result_path = '../../data/results-data'
+    tract_path = os.path.join(PROCESSED_DATA_DIR, 'census')
+    od_path = os.path.join(PROCESSED_DATA_DIR, 'od')
+    road_path = os.path.join(PROCESSED_DATA_DIR, 'road')
+    edu_path = os.path.join(PROCESSED_DATA_DIR, 'edu')
+    urban_path = os.path.join(PROCESSED_DATA_DIR, 'urban')
 
+    #saving path
+    result_path = RESULTS_DIR
+
+    tract_id_work = None if args.dry_run else load_tract_id_work()
 
     # Loop through the state using state code
-    for state_code in state_codes:
+    for state_code in run_state_codes:
         state_abbreviation = state_dict[state_code].lower()
         logger.info(f"========{state_abbreviation}========")
 
@@ -133,8 +149,15 @@ if __name__ == '__main__':
         state_tract = gpd.read_file(state_tract_path)
         state_tract = state_tract[state_tract['DP1_0001C'] > 0] #select tract with population
         state_tract['GEOID'] = state_tract['GEOID'].astype(str)
+        state_tract = state_tract[in_counties(state_tract['GEOID'], state_code, counties)]
         state_tract = state_tract.sort_values(by='GEOID').set_index('GEOID')
         logger.info(f"{state_abbreviation} Census Tract Coord is {state_tract.crs}")
+        logger.info(f"{state_abbreviation} tracts selected: {len(state_tract)}")
+
+        if args.dry_run:
+            for geoid in state_tract.index:
+                print(geoid)
+            continue
 
         # 2 Origin and destination (df, csv)
         state_od_path = os.path.join(od_path, f"{state_abbreviation}-tract-od-2020.csv")
@@ -183,12 +206,13 @@ if __name__ == '__main__':
         # Collect Data and Save Results
         logger.info(f"Saving Results")
         state_results_path = os.path.join(result_path, f'{state_abbreviation}')
+        name = run_name(state_abbreviation, counties)
 
         if not os.path.exists(state_results_path):
             logger.info(f"Creating Path {state_results_path}")
             os.makedirs(state_results_path)
 
-        population_path = os.path.join(state_results_path, f'{state_abbreviation}_population')
+        population_path = os.path.join(state_results_path, f'{name}_population')
         population_df = __collect_results__(population, "Pop")
 
         if population_df['id'].isna().any() or population_df['wp'].isna().any():
@@ -214,19 +238,19 @@ if __name__ == '__main__':
             population_df.to_file(population_path + ".gpkg", driver='GPKG')
             logger.info(f"Saved {state_abbreviation} Population to: {population_path}")
 
-        workplace_path = os.path.join(state_results_path, f'{state_abbreviation}_workplace')
+        workplace_path = os.path.join(state_results_path, f'{name}_workplace')
         workplace_df = __collect_results__(workplaces, "Work")
         workplace_df.to_file(workplace_path + ".gpkg", driver='GPKG')
         logger.info(f"Total Workplaces Generated for {state_abbreviation}: {len(workplace_df)}")
         logger.info(f"Saving {state_abbreviation} Workplaces to: {workplace_path}")
 
-        ver_path = os.path.join(state_results_path, f'{state_abbreviation}_verification.csv')
+        ver_path = os.path.join(state_results_path, f'{name}_verification.csv')
         verification_df = __collect_results__(verification, "Verification")
         verification_df.to_csv(ver_path)
         logger.info(f"Saving {state_abbreviation} Verification to: {ver_path}")
 
         if len(error_log) > 0:
-            error_log_path = os.path.join(state_results_path, f'{state_abbreviation}_error_log.csv')
+            error_log_path = os.path.join(state_results_path, f'{name}_error_log.csv')
             error_log_df = __collect_results__(error_log, "ErrorLog")
             error_log_df.to_csv(error_log_path)
             logger.info(f"Saving {state_abbreviation} ErrorLog to: {error_log_path}")
