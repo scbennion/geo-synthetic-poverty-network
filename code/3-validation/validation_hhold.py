@@ -5,7 +5,7 @@ import geopandas as gpd
 from tqdm import tqdm
 
 from loguru import logger
-from src.settings import state_codes, state_dict
+from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
 from src.verification import get_hholde_type_amount, plot_hhold_df
 
 import warnings
@@ -14,8 +14,8 @@ warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", message="findfont: Font family")
 
 def get_state_us_ver_hhold_dfs_plots():
-    census_path = '../../data/processed-data/census'
-    results_path = '../../data/results-data'
+    census_path = os.path.join(PROCESSED_DATA_DIR, 'census')
+    results_path = RESULTS_DIR
 
     final_hhold_ver_df = pd.DataFrame()  # hhold vali
 

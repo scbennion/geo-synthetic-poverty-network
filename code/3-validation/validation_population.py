@@ -6,7 +6,7 @@ import geopandas as gpd
 from tqdm import tqdm
 from loguru import logger
 
-from src.settings import state_codes, state_dict
+from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
 from src.after_validation_functions import verifiy_age_group, plot_ver_age_df
 
 import warnings
@@ -15,8 +15,8 @@ warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", message="findfont: Font family")
 
 def get_state_us_age_ver_dfs_plots():
-    census_path = '../../data/processed-data/census'
-    results_path = '../../data/results-data'
+    census_path = os.path.join(PROCESSED_DATA_DIR, 'census')
+    results_path = RESULTS_DIR
 
     final_age_ver_df = pd.DataFrame()
 

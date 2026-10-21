@@ -10,7 +10,7 @@ from src.settings import RAW_DATA_DIR, PROCESSED_DATA_DIR, RESULTS_DIR, state_co
 from loguru import logger
 
 logger.info('Loading US BG data..')
-us_bg_boundary_pop = gpd.read_file('data/processed-data/acs/acs_bg_boundary_population.gpkg')
+us_bg_boundary_pop = gpd.read_file(os.path.join(PROCESSED_DATA_DIR, 'acs/acs_bg_boundary_population.gpkg'))
 
 # Function to calculate Spearman correlation for each group
 # def spearman_corr(group):

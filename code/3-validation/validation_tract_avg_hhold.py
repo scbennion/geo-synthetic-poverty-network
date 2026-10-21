@@ -14,7 +14,7 @@ import numpy as np
 
 from bs4 import BeautifulSoup
 from loguru import logger
-from src.settings import state_codes, state_dict
+from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
 
 from src.after_validation_functions import verifiy_avg_hhold_size, load_census_data, load_clean_population_data
 
@@ -32,8 +32,8 @@ def check_restuling_exists(path):
         return False
 
 def get_state_avg_hhold_size_ver_dfs_plots():
-    census_path = '../../data/processed-data/census'
-    results_path = '../../data/results-data'
+    census_path = os.path.join(PROCESSED_DATA_DIR, 'census')
+    results_path = RESULTS_DIR
 
     final_avg_hhold_size_df = pd.DataFrame()
 

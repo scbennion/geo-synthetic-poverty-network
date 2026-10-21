@@ -9,7 +9,7 @@ import warnings
 warnings.simplefilter('ignore', InsecureRequestWarning)
 
 from loguru import logger
-from src.settings import state_codes, state_dict, RESULTS_DIR
+from src.settings import state_codes, state_dict, RAW_DATA_DIR, RESULTS_DIR
 from src.external_validation import (read_pums_file,get_aggregate_spop_data,
                                      get_aggregate_pums20_data, read_clean_pums_tract_relationship,
                                      get_cosine_similarity)
@@ -46,13 +46,13 @@ def get_us_aggregate_pums_data(pums_path):
 if __name__ == '__main__':
     logger.info('Start...')
     #PUMS and Census Tract Relationships
-    pums_tract_path = 'data/raw-data/puma/2020_Census_Tract_to_2020_PUMA.csv'
+    pums_tract_path = os.path.join(RAW_DATA_DIR, 'puma/2020_Census_Tract_to_2020_PUMA.csv')
     pums_tract_relationship = read_clean_pums_tract_relationship(pums_tract_path)
     #Get Aggregated data from spop
     us_agg_spop_data = get_us_aggregate_spop_data(pums_tract_relationship)
 
     #Get Aggregated data from spop
-    pums_data_path = 'data/raw-data/puma/csv_pus_2022'
+    pums_data_path = os.path.join(RAW_DATA_DIR, 'puma/csv_pus_2022')
     us_agg_pums_data = get_us_aggregate_pums_data(pums_data_path)
 
     #caculate cosine similarity
