@@ -1,9 +1,20 @@
+import os
+from pathlib import Path
 
-RAW_DATA_DIR = 'data/raw-data'
+# Root of all input and output data. Override with the GSPN_DATA_DIR environment
+# variable; defaults to <repo>/data, which is where both the old cwd-relative
+# 'data/...' paths and the drivers' '../../data/...' paths pointed.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-INTERIM_DATA_DIR = 'data/interim-data'
+DATA_DIR = os.environ.get('GSPN_DATA_DIR', str(PROJECT_ROOT / 'data'))
 
-PROCESSED_DATA_DIR = 'data/processed-data'
+RAW_DATA_DIR = os.path.join(DATA_DIR, 'raw-data')
+
+INTERIM_DATA_DIR = os.path.join(DATA_DIR, 'interim-data')
+
+PROCESSED_DATA_DIR = os.path.join(DATA_DIR, 'processed-data')
+
+RESULTS_DIR = os.path.join(DATA_DIR, 'results-data')
 
 state_codes = ['01', '02' , '04', '05', '06', '08', '09', '10', '11', '12', '13', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '44', '45', '46', '47', '48', '49', '50', '51', '53', '54', '55', '56']
 
