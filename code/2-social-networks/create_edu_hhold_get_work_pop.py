@@ -8,7 +8,8 @@ from tqdm import tqdm
 
 from loguru import logger
 from src.settings import RESULTS_DIR, state_codes, state_dict
-from src.cli import add_geography_args, resolve_geography, in_counties, run_name, us_run_name
+from src.cli import add_geography_args, resolve_geography, run_name, us_run_name
+from src.population_io import load_population
 
 from src.create_social_networks import create_networks_types
 from src.seeding import DEFAULT_SEED, add_seed_arg
@@ -24,18 +25,12 @@ def create_by_state(run_state_codes=state_codes, counties=None, seed=DEFAULT_SEE
         state_abbreviation = state_dict[state_code].lower()
 
         name = run_name(state_abbreviation, counties)
-        state_population_path = os.path.join(results_path, f"{state_abbreviation}/{name}_population.pickle")
-        if counties is not None and not Path(state_population_path).exists():
-            # no county-run output; take these counties from the full-state run
-            state_population_path = os.path.join(results_path, f"{state_abbreviation}/{state_abbreviation}_population.pickle")
-            logger.info(f"No {name} population, filtering {state_population_path}")
-
         final_population_path = os.path.join(results_path, f"1-us/{us_run_name(run_state_codes, counties)}_work_population.csv")
         # todo check cache file
-        state_population = pd.read_pickle(state_population_path).loc[:, ['id', 'age', 'hhold', 'wp']]
-        if counties is not None:
-            # person ids start with the home tract GEOID
-            state_population = state_population[in_counties(state_population['id'], state_code, counties)]
+        # reads the synthesis GeoPackage <run>_population.gpkg (county runs fall back to
+        # the full-state file); people outside --counties are dropped by home tract
+        state_population, _ = load_population(results_path, state_code, counties,
+                                              columns=['id', 'age', 'hhold', 'wp'])
         # Create Social Network (Edu and Household)
         create_networks_types(state_population, results_path, state_abbreviation, name, seed=seed)
 
@@ -44,6 +39,7 @@ def create_by_state(run_state_codes=state_codes, counties=None, seed=DEFAULT_SEE
                                                       (state_population.wp.str.contains("w"))]], axis=0
                                     )
 
+    Path(final_population_path).parent.mkdir(parents=True, exist_ok=True)
     if not Path(final_population_path).exists():
         work_population.to_csv(final_population_path, index=False)
     else:
