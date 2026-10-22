@@ -176,9 +176,18 @@ Original records connect **home blocks to work blocks**, using `h_geocode` and `
 | `main` | Home and work are in the same state. | `ut_od_main_JT00_2020.csv.gz` |
 | `aux` | The job is in that state; the home is outside it. | `ut_od_aux_JT00_2020.csv.gz` |
 
-The downloader builds these filenames and writes them under `data/raw-data/work_commute/`. A state's `aux` file covers incoming workers, not all of its residents' outgoing jobs. Source: [`download_lodes_2020_data`](src/preprocess_data.py#L545).
+The downloader builds these filenames and writes them under `raw-data/work_commute/`, verifying TLS certificates; a failed download stops the run. A state's `aux` file covers incoming workers, not all of its residents' outgoing jobs. Source: [`download_lodes_2020_data`](src/preprocess_data.py).
 
-To aggregate, the helper replaces each block ID with its parent tract ID, then **adds job counts for identical home-tract/work-tract pairs**. It combines the downloaded files and writes `home`, `work`, and summed `S000` to `interim-data/od/<state>-tract-od-2020.csv`. The first 11 digits of a properly padded block ID identify its tract; the existing implementation has special handling for lost leading zeros. Source: [`combine_in_out_county_data`](src/preprocess_data.py#L586).
+**Out-of-state jobs are not modelled.** A Utah resident's job in Nevada appears only in Nevada's `aux` file, which this pipeline does not read, so those residents get no workplace. Counted from the 2020 `aux` files of every other state (Alaska has none for 2020), Utah residents hold 28,074 out-of-state jobs, 1.9% of their 1,463,937 jobs (Salt Lake County: 1.4%).
+
+To aggregate, the helper replaces each block ID with its parent tract ID, then **adds job counts for identical home-tract/work-tract pairs**. It combines the downloaded `main` and `aux` files and writes `home`, `work`, and summed `S000` to `interim-data/od/<state>-tract-od-2020.csv` (read by the workplace counts) and the same file to `processed-data/od/` (read by the synthesis driver). Block IDs are read as text and zero-padded to 15 digits, so the first 11 digits are the tract for every state. Source: [`combine_in_out_county_data`](src/preprocess_data.py).
+
+```bash
+cd code/0-preprocess/prepare-commute-data
+python process_lodes8.py --state ut            # download + aggregate ('all' for every state)
+python process_cbp.py --download               # county establishment counts, all states
+python build_tract_workplace_json.py --state ut --seed 42
+```
 
 For example, after aggregation (A, B, and C stand in for tract IDs):
 
@@ -191,7 +200,7 @@ Each row is a total for an area pair, not an individual commute or a friendship.
 
 #### Estimate workplace counts
 
-[`process_cbp.py`](code/0-preprocess/prepare-commute-data/process_cbp.py) reads a supplied 2020 **[County Business Patterns](https://www.census.gov/programs-surveys/cbp/about.html)** CSV. It selects all-industry/all-establishment-size rows and retains county IDs and `ESTAB`, the number of business establishments (business sites, not jobs). It writes `interim-data/cbp/workplace_cbp.csv`.
+[`process_cbp.py`](code/0-preprocess/prepare-commute-data/process_cbp.py) reads 2020 **[County Business Patterns](https://www.census.gov/programs-surveys/cbp/about.html)**: by default the paper's pipe-delimited `CB2000CBP.zip` (`--download` fetches it to `raw-data/workplace/`; it is streamed, not unzipped to its 2.7 GB), or a data.census.gov CSV via `--input`. It keeps county geographies only (`GEO_ID` `0500000US…`; the file also has ZIP-code and metro rows whose last five digits can look like a county) and the all-industry (`NAICS2017` 00), all-legal-form (`LFO` 001), all-size (`EMPSZES` 001) row, one per county, with `ESTAB`, the number of business establishments (business sites, not jobs). It writes `interim-data/cbp/workplace_cbp.csv` for all 3,244 counties (Utah: 86,361 establishments).
 
 The intended rule in [`get_number_of_wp`](src/preprocess_data.py#L632) is to give a tract the same share of its county's establishments as its share of the county's jobs:
 
@@ -201,9 +210,9 @@ $$
 
 Here $t$ means the tract and $c$ its county. $B$ stands for the number of business establishments; the subscript in $B_t$ means ‘the number in tract $t$.’ The hat in $\widehat{B}_t$ means **an estimate**, rather than a directly observed count. $B_c$ is the county's establishment count, $J_t$ is jobs located in the tract, and $J_c$ is jobs located in that county. Thus the fraction is the tract's share of county jobs, and the brackets mean round down. For example, a tract with 10% of a county's jobs receives 10% of its 1,000 establishments: **100 synthetic workplaces**. This is an estimate, not observed business addresses.
 
-**Implementation discrepancy:** the current helper takes the first grouped county job total, rather than looking up the tract's county total. The formula describes its intended allocation; the implementation needs correction or validation. [`add_tract_workplaces.py`](code/0-preprocess/prepare-commute-data/add_tract_workplaces.py) stores the result as `WP_CNT`.
+The helper used to divide by the first county's job total for every tract; it now uses the tract's own county. With 2020 Utah data, tract `WP_CNT` sums to 86,018 against 86,361 establishments (the gap is rounding down per tract); before the fix it summed to 10.85 million. [`add_tract_workplaces.py`](code/0-preprocess/prepare-commute-data/add_tract_workplaces.py) stores the result as `WP_CNT`.
 
-The synthesis also requires national `us_tract_number_work.json` with `GEOID`, `WP_CNT`, and `WP_PROBA` (workplace-selection probabilities). [`wp_proba`](src/tools.py#L106) draws lognormal weights and normalizes them; its comments link workplace-size literature, but the complete JSON-building driver is absent. Also resolve the handoff from intermediate commuting output to the synthesis driver's `processed-data/od` input.
+The synthesis also requires national `us_tract_number_work.json` with `GEOID`, `WP_CNT`, and `WP_PROBA` (workplace-selection probabilities). [`wp_proba`](src/tools.py#L106) draws lognormal weights and normalizes them; its comments link workplace-size literature. [`build_tract_workplace_json.py`](code/0-preprocess/prepare-commute-data/build_tract_workplace_json.py) builds the JSON for one state's tracts plus any out-of-state work tracts in that state's `aux` file (none for Utah, since `aux` work locations are in-state).
 
 ### Education inputs
 
@@ -537,8 +546,8 @@ The requirements now specify Notebook 6.5.7. During cloud setup, the former 6.5.
 | File meaning | GeoPackage is a geographic database format; Pickle serializes Python objects. | Both can hold population data, but require different readers. Pickle also depends on Python library compatibility; load only trusted files. |
 | External validation | Two scripts import `RESULTS_DIR`, absent from `src/settings.py`. | Those scripts need a path/configuration correction before use. |
 | Road preparation | The downloader imports `download_and_prepare_road_data`, while the helper is named `richard_download_and_prepare_road_data`; GRASS cleanup hardcodes a macOS executable. | Raw-road preparation needs separate fixes or suitable prepared inputs. |
-| Census preparation | Fixed: `process_census_shp.py` no longer joins a path starting with `/census/`, and `--state ut` builds the Utah tract and urban files. | The `-work` tract file still needs the LODES OD and CBP inputs from `prepare-commute-data/`. |
-| Download verification | The road and LODES download helpers explicitly disable TLS certificate verification. | Correct this behavior before using that download route; keep certificate verification enabled. |
+| Census preparation | Fixed: `process_census_shp.py` no longer joins a path starting with `/census/`, and `--state ut` builds the Utah tract and urban files. | The `-work` tract file needs the LODES OD and CBP outputs; run `process_lodes8.py` and `process_cbp.py` first. |
+| Download verification | Road, LODES, CBP and the new census/education downloads verify TLS certificates. The older `download_census_shp.py` route still passes `verify_ssl=False`. | Use `download_census_inputs.py` for census inputs, or fix that route before using it. |
 | Reproducibility | The state driver seeds Python's `random`, but does not seed NumPy's generator; the graph helper receives no explicit seed. | A single apparent seed does not fully specify a reproducible population/network run. Record and control all randomness in an experiment runner. |
 
 No full state synthesis or published-data handoff has been validated in this documentation change. Small functional checks during environment setup exercised core demographic, geographic, and network functions; they do not establish end-to-end readiness or statistical realism.

@@ -10,7 +10,8 @@ src.tools.wp_proba.
 
 Inputs (settings paths):
   INTERIM_DATA_DIR/cbp/workplace_cbp.csv                 (process_cbp.py)
-  INTERIM_DATA_DIR/census/census_demo_4326.shp.zip       (tract list, GEOID/STATEFP)
+  INTERIM_DATA_DIR/census/<st>_census_demo_4326.shp.zip  (tract list; process_census_shp.py --state),
+    or the all-states census_demo_4326.shp.zip if the per-state file is absent
   INTERIM_DATA_DIR/od/<st>-tract-od-2020.csv             (process_lodes8.py)
   RAW_DATA_DIR/work_commute/<st>_od_aux_JT00_2020.csv.gz (LODES8 aux)
 Outputs:
@@ -29,6 +30,7 @@ from src.cli import add_geography_args, resolve_geography, run_name
 from src.preprocess_data import get_number_of_wp, tract_and_county_jobs, tract_geoid
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR, state_dict
 from src.tools import wp_proba
+from src.census_prep import census_demo_path
 
 
 def read_od(state_code):
@@ -54,7 +56,11 @@ def build(state_code, counties=None):
     cbp = pd.read_csv(os.path.join(INTERIM_DATA_DIR, 'cbp/workplace_cbp.csv'), dtype={'county': str})
     cbp['county'] = cbp['county'].str.zfill(5)
 
-    census = gpd.read_file(os.path.join(INTERIM_DATA_DIR, 'census/census_demo_4326.shp.zip'))
+    # per-state tracts from process_census_shp.py --state, else the all-states file
+    census_path = census_demo_path(state_code, INTERIM_DATA_DIR, '_4326')
+    if not os.path.exists(census_path):
+        census_path = os.path.join(INTERIM_DATA_DIR, 'census/census_demo_4326.shp.zip')
+    census = gpd.read_file(census_path)
     geoids = census.loc[census['STATEFP'].astype(str).str.zfill(2) == state_code, 'GEOID'].map(tract_geoid)
     if counties is not None:
         geoids = geoids[geoids.str[2:5].isin(counties)]
