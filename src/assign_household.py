@@ -6,7 +6,8 @@ import numpy as np
 ====================Assign Household Main Function====================
 
 '''
-def __assign_household_order__(tract, people):
+def __assign_household_order__(tract, people, rng=None):
+    # rng: numpy Generator for the numpy draws; Python `random` draws use the global seed
     #print("==========Assign People a Household==========")
     #print("-Total population", len(people))
     #print('- Step 1.2 Assign People a Household-')
@@ -47,7 +48,7 @@ def __assign_household_order__(tract, people):
         # print(hhold_df)
 
         # 1.3 find members using hhold type
-        hhold_df['member'] = hhold_df.apply(lambda x: __find_members__(x, people), axis=1)
+        hhold_df['member'] = hhold_df.apply(lambda x: __find_members__(x, people, rng), axis=1)
         # print(hhold_df)
 
         # 2, group unassigned population based on group quarters
@@ -71,7 +72,7 @@ def __assign_household_order__(tract, people):
 
         # 4 assign left population randomly to household other than alone household
         people[['hhold', 'htype', 'assigned']] = people.apply(
-            lambda row: pd.Series(__assign_left_pop_hhold__(row, hhold_df)), axis=1)
+            lambda row: pd.Series(__assign_left_pop_hhold__(row, hhold_df, rng)), axis=1)
         #print("after 1 to 4 People Left", len(people[people['assigned'] == 0]))
 
 '''
@@ -212,24 +213,26 @@ def __creat_hhold_id__(tract, df_type):
     return df_type
 
 
-def __find_members__(hhold, people):
+def __find_members__(hhold, people, rng=None):
     '''
     1.3 use hholdid and hhhold type to find individuals
     '''
     # print(hhold)
-    member = __htype_find_members__(hhold['htype'], people)
+    member = __htype_find_members__(hhold['htype'], people, rng)
 
     return member
 
 
-def __htype_find_members__(type, people):
+def __htype_find_members__(type, people, rng=None):
     '''
     Finds members based on household type.
 
     :param type: Household type.
     :param people: People data.
+    :param rng: numpy Generator; None falls back to the global np.random state.
     :return: List of member indices.
     '''
+    rng = np.random if rng is None else rng
     # use type to find people index
     member_list = []
 
@@ -362,7 +365,7 @@ def __htype_find_members__(type, people):
             # get kids max and min age
             kids_age_max, kids_age_min = __get_kids_max_min_age__(member_list, people)
             # print(__get_kids__(kids_age_max, kids_age_min,people))
-            num_of_child = max(1, abs(int(np.random.normal(2))))  # gaussian touch
+            num_of_child = max(1, abs(int(rng.normal(2))))  # gaussian touch
             member_list.append(__get_kids_or_friend__(kids_age_max, kids_age_min, people, num_of_child))
 
         if type == 6:
@@ -375,7 +378,7 @@ def __htype_find_members__(type, people):
                 people.loc[head_id, 'assigned'] = 1
                 member_list.append(head_id)
 
-                num_of_child = max(1, abs(int(np.random.normal(1.6))))
+                num_of_child = max(1, abs(int(rng.normal(1.6))))
                 kids_age_max, kids_age_min = __get_kids_max_min_age__(head_id, people)
                 member_list.append(__get_kids_or_friend__(kids_age_max, kids_age_min, people, num_of_child))
             # return member_list
@@ -393,7 +396,7 @@ def __htype_find_members__(type, people):
                 people.loc[head_id, 'assigned'] = 1
                 member_list.append(head_id)
 
-                num_of_child = max(1, abs(int(np.random.normal(1.6))))
+                num_of_child = max(1, abs(int(rng.normal(1.6))))
                 kids_age_max, kids_age_min = __get_kids_max_min_age__(head_id, people)
                 member_list.append(__get_kids_or_friend__(kids_age_max, kids_age_min, people, num_of_child))
             # return member_list
@@ -411,7 +414,7 @@ def __htype_find_members__(type, people):
             member_list.append(head_id)
 
             # get roommate or friend
-            num_of_friend = max(1, abs(int(np.random.normal(1.5))))
+            num_of_friend = max(1, abs(int(rng.normal(1.5))))
         # print(num_of_friend)
 
             if people.loc[head_id, 'age'] >= 18 and people.loc[head_id, 'age'] <= 22:
@@ -591,7 +594,8 @@ def __get_group_quarter_ids__(x, people, upper_age, lower_age, number):
     return member_list
 
 
-def __assign_left_pop_hhold__(individual, hhold_df):
+def __assign_left_pop_hhold__(individual, hhold_df, rng=None):
+    rng = np.random if rng is None else rng  # numpy Generator; None = global np.random
     # print("in assign left")
 
     if individual.assigned == 0:
@@ -604,7 +608,7 @@ def __assign_left_pop_hhold__(individual, hhold_df):
                 # Normalize probabilities
                 probabilities /= np.sum(probabilities)
                 # Randomly choose household with probabilities
-                household_id = np.random.choice(hhold_for_kid_list, p=probabilities)
+                household_id = rng.choice(hhold_for_kid_list, p=probabilities)
                 assigned_household = household_id
                 assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
                 assigned_status = 1
@@ -613,7 +617,7 @@ def __assign_left_pop_hhold__(individual, hhold_df):
             else:
                 hhold_for_kid_list = list(hhold_df[hhold_df['htype'].isin([10])].hid)
                 if hhold_for_kid_list:
-                    household_id = np.random.choice(hhold_for_kid_list)
+                    household_id = rng.choice(hhold_for_kid_list)
                     assigned_household = household_id
                     assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
                     assigned_status = 1
@@ -628,7 +632,7 @@ def __assign_left_pop_hhold__(individual, hhold_df):
                 probabilities = [0.2 if hhold_type in [1, 3] else 0.6 for hhold_type in
                                  hhold_df.loc[hhold_df['hid'].isin(hhold_for_nonfam_list), 'htype']]
                 probabilities /= np.sum(probabilities)
-                household_id = np.random.choice(hhold_for_nonfam_list, p=probabilities)
+                household_id = rng.choice(hhold_for_nonfam_list, p=probabilities)
                 assigned_household = household_id
                 assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
                 assigned_status = 1
@@ -644,7 +648,7 @@ def __assign_left_pop_hhold__(individual, hhold_df):
                 probabilities = [0.6 if hhold_type in [10] else 0.1 for hhold_type in
                                  hhold_df.loc[hhold_df['hid'].isin(hhold_for_nonfam_list), 'htype']]
                 probabilities /= np.sum(probabilities)
-                household_id = np.random.choice(hhold_for_nonfam_list, p=probabilities)
+                household_id = rng.choice(hhold_for_nonfam_list, p=probabilities)
                 assigned_household = household_id
                 assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
                 assigned_status = 1

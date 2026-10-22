@@ -15,7 +15,6 @@ import time
 
 #general packages
 import timeit
-import random
 import requests
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
@@ -30,6 +29,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
 from src.cli import add_geography_args, resolve_geography, in_counties, run_name
+from src.seeding import add_seed_arg, seed_everything
 #Synthesize Functions
 from src.ctreate_individuals import __create_individuals__
 from src.assign_household import __assign_household_order__
@@ -54,8 +54,8 @@ def load_tract_id_work():
 
 
 def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  # data
-                        population_list, workplace_list, ver_list, error_list  # list
-                        ):
+                        population_list, workplace_list, ver_list, error_list,  # list
+                        rng=None):
     '''
     :param tract:
     :param od: od dataframe containing commute pattern
@@ -68,6 +68,7 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
     :param workplace_list: an empty list defined outside the function
     :param ver_list: an empty list defined outside the function
     :param error_list: an empty list defined outside the function
+    :param rng: numpy Generator from seed_everything(); Python `random` must already be seeded
     :return: None
     '''
     start_time = timeit.default_timer()
@@ -76,19 +77,19 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
     try:
         # Step 1: Create demographic information
         # 1.1 Create Individuals
-        people = __create_individuals__(tract)
+        people = __create_individuals__(tract, rng)
         # 1.2 Group individual household
-        __assign_household_order__(tract, people)
+        __assign_household_order__(tract, people, rng)
         # __assign_household__(tract, people)
         # 1.3 Create household location on road network
-        home_location = __create_home_location__(tract, tract.DP1_0132C + 1, road)  # + 1 means group quarter
+        home_location = __create_home_location__(tract, tract.DP1_0132C + 1, road, rng)  # + 1 means group quarter
         people['geometry'] = people.hhold.map(home_location)  # attach geometry to people based on household location
 
         # Step 2: Assign Daytime Location
         # 2.1 Assign people to work and create workplace location on road network
-        __assign_workplaces__(tract, people, od, us_tract_id_work)
+        __assign_workplaces__(tract, people, od, us_tract_id_work, rng)
         # 2.2 Create workplace location on road network
-        work_location = __create_work_location__(tract, road)
+        work_location = __create_work_location__(tract, road, rng)
         # 2.3 Assign Kid to Education Sites based on its household location
         __assign_education_site__(tract, people, school, daycare)
 
@@ -114,6 +115,7 @@ if __name__ == '__main__':
     parser = add_geography_args(argparse.ArgumentParser(description='Synthesize population by state'))
     parser.add_argument('--dry-run', action='store_true',
                         help='list the tracts that would be processed and exit')
+    add_seed_arg(parser)
     args = parser.parse_args()
     try:
         run_state_codes, counties = resolve_geography(args)
@@ -122,8 +124,12 @@ if __name__ == '__main__':
 
     logger.info(f'Start Running...')
 
-    r_seed = 42
-    random.seed(r_seed)
+    # one seed for Python random and the numpy Generator passed to every drawing step
+    rng = seed_everything(args.seed)
+    logger.info(f"Seed {args.seed}")
+    # GDAL otherwise stamps the write time into GeoPackage metadata, so same-seed
+    # outputs would differ byte-wise; an explicit env value still wins
+    os.environ.setdefault('OGR_CURRENT_DATE', '2000-01-01T00:00:00Z')
 
     #input data path
     tract_path = os.path.join(PROCESSED_DATA_DIR, 'census')
@@ -200,8 +206,8 @@ if __name__ == '__main__':
         state_tract.progress_apply(
             lambda x: __synthesize__(x, state_od, state_road, tract_id_work, state_school, state_daycare,
                                           state_urban,  # input datasets
-                                          population, workplaces, verification, error_log  # resulting list
-                                          ), axis=1)
+                                          population, workplaces, verification, error_log,  # resulting list
+                                          rng), axis=1)
 
         # Collect Data and Save Results
         logger.info(f"Saving Results")

@@ -11,8 +11,9 @@ from src.settings import RESULTS_DIR, state_codes, state_dict
 from src.cli import add_geography_args, resolve_geography, in_counties, run_name, us_run_name
 
 from src.create_social_networks import create_networks_types
+from src.seeding import DEFAULT_SEED, add_seed_arg
 
-def create_by_state(run_state_codes=state_codes, counties=None):
+def create_by_state(run_state_codes=state_codes, counties=None, seed=DEFAULT_SEED):
     results_path = RESULTS_DIR
 
     work_population = pd.DataFrame()
@@ -36,7 +37,7 @@ def create_by_state(run_state_codes=state_codes, counties=None):
             # person ids start with the home tract GEOID
             state_population = state_population[in_counties(state_population['id'], state_code, counties)]
         # Create Social Network (Edu and Household)
-        create_networks_types(state_population, results_path, state_abbreviation, name)
+        create_networks_types(state_population, results_path, state_abbreviation, name, seed=seed)
 
         work_population = pd.concat([work_population,
                                      state_population[(state_population.age >= 18) &
@@ -49,12 +50,12 @@ def create_by_state(run_state_codes=state_codes, counties=None):
         logger.info("US work population already exists")
 
 if __name__ == '__main__':
-    parser = add_geography_args(argparse.ArgumentParser(description='Create education and household networks'))
+    parser = add_seed_arg(add_geography_args(argparse.ArgumentParser(description='Create education and household networks')))
     args = parser.parse_args()
     try:
         run_state_codes, counties = resolve_geography(args)
     except argparse.ArgumentTypeError as e:
         parser.error(str(e))
     logger.info("Starting Creating and Getting Work Population")
-    create_by_state(run_state_codes, counties)
+    create_by_state(run_state_codes, counties, args.seed)
     logger.info("Done!!!")

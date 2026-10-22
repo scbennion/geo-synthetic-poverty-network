@@ -2,12 +2,13 @@ import random
 import pandas as pd
 import numpy as np
 
-def __create_individuals__(tract):
+def __create_individuals__(tract, rng=None):
     """
     Generate a population of individuals based on age and sex distribution data from a census tract.
 
     Parameters:
     - tract: Census tract data containing age and sex distribution information.
+    - rng: numpy Generator for the shuffle; None keeps the original fixed random_state=123.
 
     Returns:
     - DataFrame: Population of individuals with columns for age, gender, and unique identifier.
@@ -35,7 +36,7 @@ def __create_individuals__(tract):
         # temp = pd.DataFrame({'code':code, 'age':ages,'gender':[gender]*count})
         individual_dfs.append(pd.DataFrame({'code': code, 'age': ages, 'gender': [gender] * count}))
 
-    df = pd.concat(individual_dfs).sample(frac=1, random_state=123).reset_index(drop=True)
+    df = pd.concat(individual_dfs).sample(frac=1, random_state=123 if rng is None else rng).reset_index(drop=True)
     # df = pd.concat([dfs]).sample(frac=1,random_state=123).reset_index(drop=True)
     df.index = tract.name + 'i' + df.index.to_series().astype(str)
 

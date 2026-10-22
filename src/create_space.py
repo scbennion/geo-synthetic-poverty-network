@@ -30,7 +30,7 @@ def __hash_geom__(g):
         #return tuple((round(lat,6),round(lon,6)) for lat,lon in g.geoms) #shapely 2.0 or later version
 
 
-def __create_home_location__(tract, household_count, road):
+def __create_home_location__(tract, household_count, road, rng=None):
     '''
     creat home loaction
     :param tract: row of census tract
@@ -60,13 +60,13 @@ def __create_home_location__(tract, household_count, road):
     flattened_points = interpolated_points.unstack().dropna().reset_index(drop=True)
 
     # Sample home locations
-    sampled_homes = flattened_points.sample(n=household_count, replace=True).reset_index(drop=True)
+    sampled_homes = flattened_points.sample(n=household_count, replace=True, random_state=rng).reset_index(drop=True)
     sampled_homes.index = tract.name + 'h' + sampled_homes.index.to_series().astype(str)
 
     return gpd.GeoSeries(sampled_homes)
 
 
-def __create_work_location__(tract, road):
+def __create_work_location__(tract, road, rng=None):
     '''
     Creates work place on a primary road, secondary road and intersection of home road.
 
@@ -110,7 +110,7 @@ def __create_work_location__(tract, road):
     else:
         work_place = intersection_points
 
-    work_place = work_place.sample(n=tract.WP_CNT, replace=True).reset_index(drop=True)
+    work_place = work_place.sample(n=tract.WP_CNT, replace=True, random_state=rng).reset_index(drop=True)
     work_place.index = tract.name + 'w' + work_place.index.to_series().astype(str)
     # print("workplace")
     # print(wrk_place)'

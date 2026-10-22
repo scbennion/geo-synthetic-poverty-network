@@ -103,13 +103,15 @@ def number_of_wp(data, od, cbp):
         return 0
 
 
-def wp_proba(x):
+def wp_proba(x, rng=None):
     """
     probability of an employee working in that workplace is lognormal:
     http://www.haas.berkeley.edu/faculty/pdf/wallace_dynamics.pdf
+    rng: numpy Generator; None uses a fresh unseeded np.random.default_rng()
     """
     if x == 0: return np.zeros(0)
-    b = np.random.lognormal(mean=2,size=x).reshape(-1, 1)
+    rng = np.random.default_rng() if rng is None else rng
+    b = rng.lognormal(mean=2,size=x).reshape(-1, 1)
     return np.sort(normalize(b,norm='l1',axis=0).ravel())
 
 
