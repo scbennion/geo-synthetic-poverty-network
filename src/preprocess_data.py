@@ -6,13 +6,7 @@ import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
 import requests
-import urllib3
-from urllib3.exceptions import InsecureRequestWarning
-import warnings
 import glob
-
-# Suppress only the InsecureRequestWarning
-warnings.simplefilter('ignore', InsecureRequestWarning)
 
 from bs4 import BeautifulSoup
 from loguru import logger
@@ -167,130 +161,122 @@ def get_road_file_names(base_url, state_fips_code):
         print(f"An error occurred: {e}")
         return None
 
-def richard_download_and_prepare_road_data(
+def download_and_prepare_road_data(
     state_fips_code,
     state_name,
     raw_data_path=RAW_DATA_DIR,
     interim_data_path=INTERIM_DATA_DIR,
+    counties=None,
+    output_name=None,
 ):
     """
-    Download and prepare road data for a specific state and save the resulting shapefile.
+    Download the TIGER/Line 2020 All Roads county files for a state and combine them
+    into one interim shapefile, ``<interim>/road/<output_name>_road.shp.zip``.
 
     Parameters:
-    - state_name (str): The name of the state.
-    - state_fips_code (str): The FIPS code for the state of interest.
-    - raw_data_path (str): The path to the raw road shapefiles.
-                           Default is `src.settings.RAW_DATA_DIR`.
-    - interim_data_path (str): The directory where the resulting shapefile will be saved.
-                               Default is `src.settings.INTERIM_DATA_DIR`.
-    """
+    - state_fips_code (str): 2-digit state FIPS code, e.g. '49'.
+    - state_name (str): state abbreviation, e.g. 'UT'.
+    - raw_data_path (str): county ZIPs are cached in ``<raw>/road/<state_name>/``.
+    - interim_data_path (str): where the combined shapefile is written.
+    - counties (list[str] | None): 3-digit county FIPS codes to keep; None = all.
+    - output_name (str | None): output file prefix; defaults to ``state_name``.
 
-    # Check for cached output
-    output_path = f"{interim_data_path}/road/{state_name}_road.shp.zip"
+    Returns the output path. Downloads verify TLS certificates; a failed download
+    raises instead of being skipped silently.
+    """
+    output_name = output_name or state_name
+    output_path = f"{interim_data_path}/road/{output_name}_road.shp.zip"
     if os.path.exists(output_path):
         logger.info(
             f"Cached output found at {output_path}. Skipping download and processing."
         )
-        return
+        return output_path
 
     logger.info("Downloading and processing road data.")
-    # Create the directory if it doesn't exist
-    if not os.path.exists(f"{raw_data_path}/road/{state_name}"):
-        os.makedirs(f"{raw_data_path}/road/{state_name}")
-    if not os.path.exists(f"{interim_data_path}/road"):
-        os.makedirs(f"{interim_data_path}/road")
+    os.makedirs(f"{raw_data_path}/road/{state_name}", exist_ok=True)
+    os.makedirs(f"{interim_data_path}/road", exist_ok=True)
 
     list_ = []
     url = "https://www2.census.gov/geo/tiger/TIGER2020/ROADS/"
 
     road_file_names = get_road_file_names(url, state_fips_code)
+    if not road_file_names:
+        raise RuntimeError(f"No road files found for state {state_fips_code} at {url}")
+    if counties is not None:
+        wanted = {f"tl_2020_{state_fips_code}{c}_roads.zip" for c in counties}
+        missing = wanted - set(road_file_names)
+        if missing:
+            raise RuntimeError(f"Road files not listed at {url}: {sorted(missing)}")
+        road_file_names = [f for f in road_file_names if f in wanted]
 
     for file_name in tqdm(road_file_names):
         file_path = f"{raw_data_path}/road/{state_name}/{file_name}"
         if not os.path.exists(file_path):
-            try:
-                full_url = url + file_name
-                #wget.download(full_url, out=f"{raw_data_path}/road/{state_name}", no_check_certificate=True)
-                download_file(full_url, f"{raw_data_path}/road/{state_name}/{file_name}", verify_ssl=False)
-            except Exception as e:
-                if str(e) == "HTTP Error 404: Not Found":
-                    continue
-                else:
-                    logger.error(f"Error {e} when downloading file {file_name}")
-                    continue
-        try:
-            gdf = gpd.read_file(file_path, index_col=None, header=0)
-            list_.append(gdf)
-        except Exception as e:
-            logger.error(f"Error {e} when reading file {file_name}")
+            if not download_file(url + file_name, file_path):
+                raise RuntimeError(f"Failed to download {url + file_name}")
+        list_.append(gpd.read_file(file_path))
 
     frame = pd.concat(list_, axis=0, ignore_index=True)
 
     # Save the processed data
     frame.to_file(output_path)
     logger.info(f"Saved road data to {output_path}")
+    return output_path
+
+
+# old name, kept so existing callers keep working
+richard_download_and_prepare_road_data = download_and_prepare_road_data
+
 
 def process_interim_road_data(
     state_name,
     interim_data_path=INTERIM_DATA_DIR,
     processed_data_path=PROCESSED_DATA_DIR,
+    output_name=None,
+    overwrite=False,
 ):
     """
-    Process road data for a specific state and save the resulting shapefile.
+    Clean the interim road shapefile and write the synthesis input
+    ``<processed>/road/<output_name>_road_cleaned.shp.zip`` (fields LINEARID,
+    MTFCC, comp, geometry; CRS of the TIGER input, EPSG:4269).
+
+    Cleaning is the pure-Python replacement for the former GRASS GIS step, see
+    ``src.clean_roads.clean_road_network``.
 
     Parameters:
-    - state_name (str): The name of the state.
-    - interim_data_path (str): The directory where the interim files will be saved.
-                               Default is `src.settings.INTERIM_DATA_DIR`.
-    - processed_data_path (str): The directory where the processed shapefile will be saved.
-                                 Default is `src.settings.PROCESSED_DATA_DIR`.
+    - state_name (str): state abbreviation, e.g. 'UT'.
+    - interim_data_path (str): reads ``<interim>/road/<output_name>_road.shp.zip``.
+    - processed_data_path (str): directory for the processed shapefile.
+    - output_name (str | None): file prefix; defaults to ``state_name``.
+    - overwrite (bool): rebuild even if the output exists.
+
+    Returns the output path.
     """
+    from src.clean_roads import clean_road_network
 
-    # Check for cached output
+    output_name = output_name or state_name
     output_dir = f"{processed_data_path}/road"
-    output_path = f"{output_dir}/{state_name}_road_cleaned.shp.zip"
-    if os.path.exists(output_path):
+    output_path = f"{output_dir}/{output_name}_road_cleaned.shp.zip"
+    if os.path.exists(output_path) and not overwrite:
         logger.info(f"Cached road data found at {output_path}. Skipping processing.")
-        return
+        return output_path
 
-    component_csv_path = (
-        f"{interim_data_path}/road/grass_output/{state_name}_road_component.csv"
-    )
-    # Check if the required files exist
-    if not os.path.exists(component_csv_path):
-        logger.error(f"Component CSV file {component_csv_path} does not exist.")
-        logger.error(
-            "Please process road network data using GRASS GIS as described in the README file."
+    input_path = f"{interim_data_path}/road/{output_name}_road.shp.zip"
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(
+            f"Interim road file {input_path} does not exist; "
+            "run code/0-preprocess/prepare-road/download_process_roads.py first."
         )
-        return
-    logger.info(f"Reading component CSV from {component_csv_path}")
-    components = pd.read_csv(component_csv_path, usecols=[0])
+    logger.info(f"Reading interim roads from {input_path}")
+    raw = gpd.read_file(input_path)
+    logger.info(f"Cleaning {len(raw)} road features")
+    roads = clean_road_network(raw)
+    logger.info(f"Cleaned roads: {len(roads)} segments, {roads['comp'].nunique()} components")
 
-    cleaned_shp_path = f"{interim_data_path}/road/grass_output/{state_name}_road_cleaned.shp"
-    # Check if the required files exist
-    if not os.path.exists(cleaned_shp_path):
-        logger.error(f"Cleaned shapefile {cleaned_shp_path} does not exist.")
-        logger.error(
-            "Please process road network data using GRASS GIS as described in the README file."
-        )
-        return
-    logger.info(f"Reading cleaned shapefile from {cleaned_shp_path}")
-    cleaned = gpd.read_file(cleaned_shp_path)
-
-    col_list = ["LINEARID", "MTFCC", "geometry"]
-    roads = cleaned.loc[:, col_list].join(components)
-
-    logger.info(f"Roads DataFrame shape: {roads.shape}")
-    logger.info(f"Roads DataFrame head:\n{roads.head()}")
-
-    # Create output directory if it doesn't exist
-    if not os.path.exists(output_dir):
-        logger.info(f"Creating directory {output_dir}")
-        os.makedirs(output_dir)
-
-    # Save as a shapefile
+    os.makedirs(output_dir, exist_ok=True)
     logger.info(f"Saving processed data to {output_path}")
     roads.to_file(output_path)
+    return output_path
 
 '''
 2 Process Commute Data Functions
@@ -517,29 +503,28 @@ def get_workplace_data(raw_data_path):
 
     return cbp
 
-def download_file(url, output_path, verify_ssl=False):
+def download_file(url, output_path, verify_ssl=True):
+    """Download ``url`` to ``output_path``; returns True on success, False on error.
+
+    TLS certificates are verified unless ``verify_ssl=False`` is passed. The file is
+    written to ``<output_path>.part`` and renamed only when complete, so a failed
+    download never leaves a truncated file that later looks cached.
+    """
+    part_path = f"{output_path}.part"
     try:
-        # If verify_ssl is False, SSL verification is disabled. Caution: this is insecure.
-        # Typically, you'd use verify=certifi.where() to specify a path to a CA bundle
-        response = requests.get(url, stream=True, verify=verify_ssl)
+        response = requests.get(url, stream=True, verify=verify_ssl, timeout=60)
         response.raise_for_status()
 
-        with open(output_path, 'wb') as f:
+        with open(part_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-
-        #print(f"Downloaded file saved to {output_path}")
-    except requests.exceptions.HTTPError as e:
-        print(f"HTTP error occurred: {e}")
-    except requests.exceptions.ConnectionError as e:
-        print(f"Connection error occurred: {e}")
-    except requests.exceptions.Timeout as e:
-        print(f"Timeout occurred: {e}")
+        os.replace(part_path, output_path)
+        return True
     except requests.exceptions.RequestException as e:
-        print(f"Error downloading file: {e}")
-
-
-
+        logger.error(f"Error downloading {url}: {e}")
+        if os.path.exists(part_path):
+            os.remove(part_path)
+        return False
 
 
 def download_lodes_2020_data(state_name, raw_data_dir=RAW_DATA_DIR):
