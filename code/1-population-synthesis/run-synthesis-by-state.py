@@ -37,7 +37,7 @@ from src.create_space import __create_home_location__
 
 from src.assign_workplace import __assign_workplaces__
 from src.create_space import __create_work_location__
-from src.assign_education_site import __assign_education_site__
+from src.assign_education_site import __assign_education_site__, EducationSites
 
 from src.tools import check_urban
 from src.tools import __verfication__
@@ -61,8 +61,8 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
     :param od: od dataframe containing commute pattern
     :param road: road network shapefile
     :param us_tract_id_work: census tract dataset
-    :param school: school data
-    :param daycare: daycare data
+    :param school: EducationSites for schools (enrollment counter shared across tracts)
+    :param daycare: EducationSites for daycares (enrollment counter shared across tracts)
     :param urban: urban data
     :param population_list: an empty list defined outside the function
     :param workplace_list: an empty list defined outside the function
@@ -73,6 +73,7 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
     '''
     start_time = timeit.default_timer()
     logger.info(f"{tract.name} started")
+    edu_snapshots = (school.snapshot(), daycare.snapshot())
 
     try:
         # Step 1: Create demographic information
@@ -107,6 +108,9 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
     except Exception as e:
         logger.error(f"{tract.name} has a problem: {e}", exc_info=True)
         error_list.append((tract.name, str(e)))
+        # a failed tract's children are dropped, so release their school/daycare places
+        school.restore(edu_snapshots[0])
+        daycare.restore(edu_snapshots[1])
 
     elapsed_time = timeit.default_timer() - start_time
     logger.info(f'{tract.name} now ended ({elapsed_time:.1f} secs)')
@@ -189,6 +193,9 @@ if __name__ == '__main__':
         logger.info(f"{state_abbreviation} Daycare Path {state_daycare_path}")
         state_daycare = gpd.read_file(state_daycare_path)
         logger.info(f"{state_abbreviation} Daycare Coord is {state_daycare.crs}")
+        # one enrollment counter per site table for the whole state run
+        school_sites = EducationSites(state_school)
+        daycare_sites = EducationSites(state_daycare)
 
         # 5 Urban area (gdf, gpkg)
         state_urban_path = os.path.join(urban_path, f"{state_abbreviation.upper()}_urban.gpkg")
@@ -204,10 +211,12 @@ if __name__ == '__main__':
 
         # Run the __synthesize__ function
         state_tract.progress_apply(
-            lambda x: __synthesize__(x, state_od, state_road, tract_id_work, state_school, state_daycare,
+            lambda x: __synthesize__(x, state_od, state_road, tract_id_work, school_sites, daycare_sites,
                                           state_urban,  # input datasets
                                           population, workplaces, verification, error_log,  # resulting list
                                           rng), axis=1)
+        logger.info(f"{state_abbreviation} education capacity fallbacks: "
+                    f"school {len(school_sites.fallbacks)}, daycare {len(daycare_sites.fallbacks)}")
 
         # Collect Data and Save Results
         logger.info(f"Saving Results")
