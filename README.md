@@ -132,6 +132,23 @@ A full tract identifier has 11 digits: state (2), county (3), tract (6). A block
 
 [`download_census_shp.py`](code/0-preprocess/prepare-census/download_census_shp.py) uses helpers to fetch [2020 TIGER/Line tract boundaries](https://www2.census.gov/geo/tiger/TIGER2020/TRACT/). [`process_census_shp.py`](code/0-preprocess/prepare-census/process_census_shp.py) reads a supplied 2020 Demographic Profile CSV, extracts age/sex and household fields, and joins them to tract geography by `GEOID`. Some later helpers select columns by position; preserve the expected field order as well as names.
 
+For a single state the order is:
+
+```text
+python code/0-preprocess/prepare-census/download_census_inputs.py --state ut
+#   raw-data/demographic-profile-20/DECENNIALDP2020.DP1-ut-tracts.csv  (DP1, all Utah tracts)
+#   raw-data/census/tl_2020_49_tract.zip                               (TIGER 2020 tracts)
+#   raw-data/urban/tl_2020_us_uac20.zip                                (TIGER 2020 urban areas)
+python code/0-preprocess/prepare-census/process_census_shp.py --state ut
+#   interim-data/census/ut_census_demo.shp.zip, ut_census_demo_4326.shp.zip
+#   processed-data/urban/UT_urban.gpkg
+#   processed-data/census/ut-tracts-demo-work.shp.zip  only if the commute inputs exist:
+#     interim-data/od/ut-tract-od-2020.csv (process_lodes8.py) and
+#     interim-data/cbp/workplace_cbp.csv (process_cbp.py); otherwise it exits 3
+```
+
+DP1 comes from the Census API dataset `2020/dec/dp`, `group(DP1)`; its variable names (`DP1_0001C` = count, `DP1_0001P` = percent) are the same as in a data.census.gov table download. api.census.gov now rejects requests without a key, so the downloader uses `CENSUS_API_KEY` when set and otherwise the data.census.gov table endpoint, which serves the same query. The `-work` suffix means `WP_CNT` (workplaces per tract) has been added; the synthesis needs it (`__create_work_location__`), so the demographic-only file cannot stand in for it. The written tract file holds the 12 TIGER attributes, then `DP1_0001C`, `DP1_0025C`, the 18 male age groups, `DP1_0049C`, the 18 female age groups, `DP1_0112C`–`DP1_0146C`, `WP_CNT` and geometry; `__create_individuals__` relies on that order (`tract[13:50]`). See [`src/census_prep.py`](src/census_prep.py).
+
 The paper's [Table 1 and references 21/35](https://doi.org/10.1038/s41597-024-03970-1) identify these sources as the [2020 Census Demographic Profile](https://www.census.gov/data/tables/2023/dec/2020-census-demographic-profile.html) and 2020 tract boundaries. Its reference 22 also identifies [2020 TIGER/Line urban-area boundaries](https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2020&layergroup=Urban+Areas), used later for the urban flag.
 
 [`src/settings.py`](src/settings.py) lists 51 areas: 50 states plus Washington, D.C. Its nonconsecutive geographic codes are identifiers, not entry counts ([Census ANSI/FIPS reference](https://www.census.gov/library/reference/code-lists/ansi.html)).
@@ -520,7 +537,7 @@ The requirements now specify Notebook 6.5.7. During cloud setup, the former 6.5.
 | File meaning | GeoPackage is a geographic database format; Pickle serializes Python objects. | Both can hold population data, but require different readers. Pickle also depends on Python library compatibility; load only trusted files. |
 | External validation | Two scripts import `RESULTS_DIR`, absent from `src/settings.py`. | Those scripts need a path/configuration correction before use. |
 | Road preparation | The downloader imports `download_and_prepare_road_data`, while the helper is named `richard_download_and_prepare_road_data`; GRASS cleanup hardcodes a macOS executable. | Raw-road preparation needs separate fixes or suitable prepared inputs. |
-| Census preparation | A joined path starts with `/census/`, discarding its configured parent directory. | Check and correct path handling before reproducing raw preprocessing. |
+| Census preparation | Fixed: `process_census_shp.py` no longer joins a path starting with `/census/`, and `--state ut` builds the Utah tract and urban files. | The `-work` tract file still needs the LODES OD and CBP inputs from `prepare-commute-data/`. |
 | Download verification | The road and LODES download helpers explicitly disable TLS certificate verification. | Correct this behavior before using that download route; keep certificate verification enabled. |
 | Reproducibility | The state driver seeds Python's `random`, but does not seed NumPy's generator; the graph helper receives no explicit seed. | A single apparent seed does not fully specify a reproducible population/network run. Record and control all randomness in an experiment runner. |
 
