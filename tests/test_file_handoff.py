@@ -17,6 +17,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point, box
 
+from src.create_social_networks import wp_kind
 from src.population_io import population_source, read_population
 from src.tools import __collect_results__
 
@@ -177,11 +178,11 @@ def test_synthesis_to_networks_to_validation(data_dir, geo, tracts, run):
         assert set(ties) == set(population.index[population.hhold == hh]) - {person}
     for kind, letter in [('school', 's'), ('daycare', 'd')]:
         net = _network(nets / f'{run}_{kind}_network.csv')
-        assert set(net) == set(population.index[population.wp.str.contains(letter)])
+        assert set(net) == set(population.index[wp_kind(population.wp) == letter])
         for person, ties in net.items():
             assert all(population.loc[t, 'wp'] == population.loc[person, 'wp'] for t in ties)
 
-    workers = population[(population.age >= 18) & population.wp.str.contains('w')]
+    workers = population[(population.age >= 18) & (wp_kind(population.wp) == 'w')]
     work_pop = pd.read_csv(results / '1-us' / f'{run}_work_population.csv', dtype=str)
     assert set(work_pop['id']) == set(workers.index)
     work = _network(results / '1-us' / f'{run}_work_network.csv')
@@ -261,3 +262,12 @@ def test_external_validation_reads_gpkg(data_dir):
                              *TRACTS], env=env, capture_output=True, text=True, timeout=300)
     assert result.returncode == 0, result.stderr[-3000:]
     assert result.stdout.split('\n')[-2] == f"['4900001'] {36 * PER_GROUP * 2}"
+
+
+def test_wp_kind_uses_marker_letter():
+    import pandas as pd
+
+    wp = pd.Series(['49035100100w3', '49035100100wNotFound', '49035100100wNone',
+                    '49s00001', '49d00002', '49035100100h7', 's1', 'd0'])
+    # 'wNotFound' contains a 'd' but is a workplace, not a daycare
+    assert list(wp_kind(wp)) == ['w', 'w', 'w', 's', 'd', 'h', 's', 'd']

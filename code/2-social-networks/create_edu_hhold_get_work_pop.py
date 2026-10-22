@@ -11,7 +11,7 @@ from src.settings import RESULTS_DIR, state_codes, state_dict
 from src.cli import add_geography_args, resolve_geography, run_name, us_run_name
 from src.population_io import load_population
 
-from src.create_social_networks import create_networks_types
+from src.create_social_networks import create_networks_types, wp_kind
 from src.seeding import DEFAULT_SEED, add_seed_arg
 
 def create_by_state(run_state_codes=state_codes, counties=None, seed=DEFAULT_SEED):
@@ -36,7 +36,7 @@ def create_by_state(run_state_codes=state_codes, counties=None, seed=DEFAULT_SEE
 
         work_population = pd.concat([work_population,
                                      state_population[(state_population.age >= 18) &
-                                                      (state_population.wp.str.contains("w"))]], axis=0
+                                                      (wp_kind(state_population.wp) == "w")]], axis=0
                                     )
 
     Path(final_population_path).parent.mkdir(parents=True, exist_ok=True)

@@ -46,7 +46,7 @@ from src.tools import __collect_results__
 
 def load_tract_id_work():
     #tract_id_work = pd.read_csv('../data/processed-data/us_tract_number_work.csv')
-    tract_id_work = pd.read_json(os.path.join(PROCESSED_DATA_DIR, 'us_tract_number_work.json'), orient='records', lines=True)
+    tract_id_work = pd.read_json(os.path.join(PROCESSED_DATA_DIR, 'us_tract_number_work.json'), orient='records', lines=True, dtype={'GEOID': str})
     tract_id_work['GEOID'] = tract_id_work['GEOID'].astype(str)
     tract_id_work = tract_id_work.sort_values(by = 'GEOID').set_index('GEOID')
     logger.info(f"US Tract and Work Reading Done!")

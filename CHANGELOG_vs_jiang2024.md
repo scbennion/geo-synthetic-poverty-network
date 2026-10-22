@@ -138,3 +138,8 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 - `rmsa` and vertex-to-segment snapping are not reproduced. A side-by-side check against a GRASS run (or the published OSF road file) has not been done.
 - With `--counties`, road files are named `<STATE>_c<counties>_road_cleaned.shp.zip`, but the synthesis driver only reads `<STATE>_road_cleaned.shp.zip`. A county run needs the full-state file (about 30 s download + 60 s cleaning for Utah) or a driver change.
 - Pre-existing, not changed: `__create_work_location__` takes `Point(x.coords[0])` of every clipped local road and raises `IndexError` if a clip is an empty LineString. That does not happen with raw TIGER or this cleaning (exact TIGER coordinates are kept), but any preprocessing that perturbs coordinates, such as a CRS round trip, triggers it on 36 of 251 Salt Lake County tracts.
+
+## Integration fixes
+
+- `src/create_social_networks.py` `create_networks_types` and `code/2-social-networks/create_edu_hhold_get_work_pop.py` `create_by_state`: daycare, school and work members are now selected by the first letter after any leading digits of `wp` (`wp_kind`) instead of `wp.str.contains('d'/'s'/'w')`. Why: `<tract>wNotFound` contains `d`, so adults whose workplace was not found were added to the daycare network. Effect: those adults leave the daycare network; no other membership changes for Jiang-style ids.
+- `code/1-population-synthesis/run-synthesis-by-state.py` `load_tract_id_work`: reads `GEOID` as text (`dtype={'GEOID': str}`). Why: default type inference dropped leading zeros, so destination tracts in states 01–09 (e.g. AZ, CO) became `wNotFound`. Effect: none for Utah tracts.

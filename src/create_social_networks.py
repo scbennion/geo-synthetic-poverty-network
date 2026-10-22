@@ -6,6 +6,12 @@ from pathlib import Path
 from loguru import logger
 
 
+def wp_kind(wp):
+    '''Site type of each wp id: the first letter after any leading digits ('w' work, 's' school,
+    'd' daycare, 'h' home). Substring checks misfire, e.g. 'wNotFound' contains 'd'.'''
+    return wp.astype(str).str.extract(r'^\d*([a-z])', expand=False)
+
+
 def create_edges(x, g, rng=None):
     if len(x) <= 5:
         sw = nx.complete_graph(len(x))
@@ -57,7 +63,7 @@ def create_networks_types(population, folder_path, state_abbreviation, name=None
     daycare_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_daycare_network.csv")
     if not Path(daycare_nx_path).exists():
         logger.info('Creating Daycare Network')
-        select_pop = population[population.wp.str.contains('d')].set_index('id').copy()
+        select_pop = population[wp_kind(population.wp) == 'd'].set_index('id').copy()
         logger.info(f"Daycare population {len(select_pop)}")
 
         new_network = create_network(select_pop, "Daycare", seed)
@@ -70,7 +76,7 @@ def create_networks_types(population, folder_path, state_abbreviation, name=None
     school_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_school_network.csv")
     if not Path(school_nx_path).exists():
         logger.info('Creating School Network')
-        select_pop = population[population.wp.str.contains('s')].set_index('id').copy()
+        select_pop = population[wp_kind(population.wp) == 's'].set_index('id').copy()
         logger.info(f"School population {len(select_pop)}")
 
         new_network = create_network(select_pop, "School", seed)

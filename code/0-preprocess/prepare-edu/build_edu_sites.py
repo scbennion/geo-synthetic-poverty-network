@@ -17,8 +17,8 @@ Source (--source epa2015, the default and the one Jiang et al. 2024 cite, ref. 2
 Output fields read by src/assign_education_site.py:
   eduID, geometry, LATITUDE, LONGITUDE, s_age, e_age, ENROLLMENT, count (=0).
   eduID is '<state FIPS>s<n>' for schools and '<state FIPS>d<n>' for daycare, because
-  src/create_social_networks.py selects school and daycare members with
-  wp.str.contains('s') / ('d') and workers with contains('w').
+  src/create_social_networks.py::wp_kind classifies wp ids by the letter after the
+  leading digits ('s' school, 'd' daycare, 'w' work, 'h' home).
   Extra provenance columns: SRC_LAYER, SRC_ID, NAME, LEVEL, ENROLLMENT_SRC, ENR_MISSING.
 
 Run:
