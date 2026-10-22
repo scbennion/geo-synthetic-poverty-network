@@ -629,53 +629,57 @@ def combine_in_out_county_data(state_ab, state_code, inter_data_dir=INTERIM_DATA
         od_final.to_csv(output_path)
 
 
-def get_number_of_wp(data, od, campany_df, state_code, error_tract):
+def tract_geoid(value):
+    """11-digit tract GEOID string, restoring leading zeros lost to int parsing."""
+    s = str(value).strip()
+    if s.endswith('.0'):
+        s = s[:-2]
+    return s.zfill(11)
+
+
+def county_fips(geoid):
+    """5-digit county FIPS (state + county) of a tract GEOID, leading zeros preserved."""
+    return tract_geoid(geoid)[:5]
+
+
+def tract_and_county_jobs(od):
     """
-    calculate number of workplaces for each tract
-    wp_tract = wp_cty * (tract_employed / county_employed)
+    Jobs located in each work tract (J_t) and in each county (J_c) from an OD table
+    with 'work' tract and 'S000' columns. Returns two Series indexed by 11-digit
+    tract GEOID and 5-digit county FIPS.
     """
+    work = od['work'].map(tract_geoid)
+    tract_jobs = od['S000'].groupby(work).sum()
+    county_jobs = tract_jobs.groupby(tract_jobs.index.str[:5]).sum()
+    return tract_jobs, county_jobs
+
+
+def get_number_of_wp(data, od, campany_df, state_code, error_tract, jobs=None):
+    """
+    Number of workplaces for a tract: floor(B_c * J_t / J_c), where B_c is the CBP
+    establishment count (ESTAB) of the tract's own county, J_t the jobs located in the
+    tract and J_c the jobs located in that county (both from the OD 'work' side).
+
+    The county is the first 5 digits of the 11-digit GEOID for every state;
+    `state_code` is kept for call compatibility. Pass `jobs` (the result of
+    `tract_and_county_jobs(od)`) to avoid regrouping `od` for every tract.
+    Tracts with no OD jobs, no CBP county row, or zero county jobs return 0 and
+    are appended to `error_tract`, as before.
+    """
+    tract_number = str(data.GEOID)
     try:
-        """
-        calculate number of workplaces for each tract
-        wp_tract = wp_cty * (tract_employed / county_employed) #commute peaple amout
-        """
+        tract_jobs, county_jobs = jobs if jobs is not None else tract_and_county_jobs(od)
+        geoid = tract_geoid(tract_number)
+        county_number = geoid[:5]
 
-        # print("++++++++++")
-        # use "od data" to get number of jobs in each census tract
-        # and number of jobs in each county
-        tract_number = str(data.GEOID)  # .astype(str)
-        tract_jobs_df = od[['work', 'S000']].groupby('work').sum().reset_index()
+        tract_jobs_number = int(tract_jobs.loc[geoid])
+        county_job_number = int(county_jobs.loc[county_number])
 
-        tract_jobs_df = tract_jobs_df.astype({"work": str})
-        tract_jobs_number = int(tract_jobs_df.loc[tract_jobs_df.work == tract_number, 'S000'].values[
-                                    0])  # total number of job in each tract
+        estab = campany_df.loc[campany_df['county'].map(lambda c: str(c).zfill(5)) == county_number, 'ESTAB']
+        county_company_number = int(estab.values[0])
+        return int(county_company_number * (tract_jobs_number / county_job_number))
 
-        # print("Tract", tract_number, "has", tract_jobs_number, "jobs")
-        def get_county_and_job_number(state_code, tract_jobs_df):
-            # county total number of job
-            if state_code in ['01', '02', '04', '05', '06', '08', '09']:
-                # county_number = tract_number[:4]
-                tract_jobs_df['county'] = tract_jobs_df.work.astype(str).str[:4]
-                county_job_df = tract_jobs_df[['county', 'S000']].groupby('county').sum().reset_index()
-                return int(county_job_df.S000[0]), tract_number[:4]
-            else:
-                # county_number = tract_number[:5]
-                tract_jobs_df['county'] = tract_jobs_df.work.astype(str).str[:5]
-                county_job_df = tract_jobs_df[['county', 'S000']].groupby('county').sum().reset_index()
-                # county_job_number = int(county_job_df.S000[0])
-                return int(county_job_df.S000[0]), tract_number[:5]
-
-        county_job_number, county_number = get_county_and_job_number(state_code, tract_jobs_df)
-        # print("County", county_number, "has",county_job_number, "company")
-
-        # print("Job Number", county_job_number, "")
-        # print(campany_df)
-        county_company_number = int(campany_df[campany_df.county == county_number].ESTAB.values[0])
-        tract_wp_number = int(county_company_number * (tract_jobs_number / county_job_number))
-        # print("Tract",  tract_number, "has", tract_wp_number, "companys")
-        return tract_wp_number
-
-    except:
+    except Exception:
         logger.info(f"{tract_number} has issue")
         error_tract.append(tract_number)
         return 0
