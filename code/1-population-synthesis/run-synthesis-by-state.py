@@ -172,9 +172,7 @@ if __name__ == '__main__':
         # 2 Origin and destination (df, csv)
         state_od_path = os.path.join(od_path, f"{state_abbreviation}-tract-od-2020.csv")
         logger.info(f"{state_abbreviation} OD Path {state_od_path}")
-        state_od = pd.read_csv(state_od_path)
-        state_od['work'] = state_od['work'].astype(str)
-        state_od['home'] = state_od['home'].astype(str)
+        state_od = pd.read_csv(state_od_path, dtype={'work': str, 'home': str})
 
         # 3 Road (gdf, shp)
         state_road_path = os.path.join(road_path, f"{state_abbreviation.upper()}_road_cleaned.shp.zip")

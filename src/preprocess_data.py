@@ -527,91 +527,68 @@ def download_file(url, output_path, verify_ssl=True):
         return False
 
 
+LODES_TYPES = ("main", "aux")
+LODES_YEAR = 2020
+
+
+def lodes_path(state_name, lodes_type, raw_data_dir=RAW_DATA_DIR, year=LODES_YEAR):
+    """Path of a downloaded LODES8 OD file, e.g. raw-data/work_commute/ut_od_main_JT00_2020.csv.gz."""
+    return os.path.join(raw_data_dir, "work_commute", f"{state_name.lower()}_od_{lodes_type}_JT00_{year}.csv.gz")
+
+
 def download_lodes_2020_data(state_name, raw_data_dir=RAW_DATA_DIR):
     """
-    Download LODES data for a specific state and save the resulting csv file.
+    Download the 2020 LODES8 `main` and `aux` OD files (JT00, all jobs) for a state.
 
-    Parameters:
-    - state_name (str): The name of the state.
-    - raw_data_path (str): The path to the raw LODES data.
-                           Default is `src.settings.RAW_DATA_DIR`.
+    Cached files are kept. Certificates are verified; a failed download raises
+    instead of being skipped, so a missing file is never mistaken for no commuters.
     """
-    for lodes_type in ["aux", "main"]:
-        logger.info(f"Downloading LODES data for {lodes_type}")
-        lodes_filename = f"{state_name.lower()}_od_{lodes_type}_JT00_2020.csv.gz"
-        lodes_full_path = os.path.join(raw_data_dir, "work_commute", lodes_filename)
-        logger.info(f"Downloading LODES to {lodes_full_path}")
+    os.makedirs(os.path.join(raw_data_dir, "work_commute"), exist_ok=True)
+    for lodes_type in LODES_TYPES:
+        lodes_full_path = lodes_path(state_name, lodes_type, raw_data_dir)
         if os.path.exists(lodes_full_path):
-            logger.info(
-                f"Cached LODES data found at {lodes_full_path}. Skipping download."
-            )
+            logger.info(f"Cached LODES data found at {lodes_full_path}. Skipping download.")
             continue
-        logger.info(
-            f"Downloading LODES data {lodes_filename} to {os.path.join(raw_data_dir, 'work_commute')}"
-        )
-        # url = f"https://lehd.ces.census.gov/data/lodes/LODES7/{state_name.lower()}/od/{lodes_filename}"
-        url = f"https://lehd.ces.census.gov/data/lodes/LODES8/{state_name.lower()}/od/{lodes_filename}"
-
-        try:
-            # full_url = url
-            #download_file(url, f"{lodes_full_path}/lodes8/{lodes_filename}", verify_ssl=False)
-            #download_file(url, f"{raw_data_dir}/work_commute/{state_name}/{lodes_filename}", verify_ssl=False)
-            download_file(url, lodes_full_path, verify_ssl=False)
-        except Exception as e:
-            if str(e) == "HTTP Error 404: Not Found":
-                continue
-            else:
-                logger.error(f"Error {e} when downloading file {lodes_filename}")
-                continue
-        # wget.download(url, out=lodes_full_path)
+        url = f"https://lehd.ces.census.gov/data/lodes/LODES8/{state_name.lower()}/od/{os.path.basename(lodes_full_path)}"
+        logger.info(f"Downloading {url} to {lodes_full_path}")
+        if not download_file(url, lodes_full_path):
+            raise RuntimeError(f"Failed to download LODES file {url}")
         logger.info(f"Saved LODES data to {lodes_full_path}")
 
 
+def combine_in_out_county_data(state_ab, state_code, inter_data_dir=INTERIM_DATA_DIR,
+                               raw_data_dir=RAW_DATA_DIR, processed_data_dir=PROCESSED_DATA_DIR):
+    """
+    Aggregate a state's 2020 LODES `main` + `aux` block OD files to tract pairs.
 
-def combine_in_out_county_data(state_ab, state_code, inter_data_dir=INTERIM_DATA_DIR):
-    # print('=========In Combining=========')
-    path_to_gz_files = f'data/raw-data/work_commute/{state_ab}_*_JT00_*.gz'
-    gz_files = glob.glob(path_to_gz_files)
-    # print(len(gz_files))
-    # print(gz_files)
+    Block geocodes are read as text and zero-padded to 15 digits, so the first 11
+    digits are the tract GEOID for every state. Writes `work`, `home`, `S000` to
+    interim-data/od/<st>-tract-od-2020.csv (input to the workplace counts) and the
+    same file to processed-data/od/ (input to the synthesis driver). Returns the table.
+    """
+    frames = []
+    for lodes_type in LODES_TYPES:
+        path = lodes_path(state_ab, lodes_type, raw_data_dir)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"LODES file missing: {path} (run process_lodes8.py)")
+        df = pd.read_csv(path, usecols=["w_geocode", "h_geocode", "S000"],
+                         dtype={"w_geocode": str, "h_geocode": str})
+        logger.info(f"Loaded file {path} with shape {df.shape}")
+        frames.append(df)
+    combine_df = pd.concat(frames, ignore_index=True)
+    logger.info(f"combined with shape {combine_df.shape}")
 
-    dataframes = []
-    # Loop through the ZIP files and read them into GeoDataFrames
-    for gz_file in gz_files:
-        try:
-            df = pd.read_csv(gz_file)
-            dataframes.append(df)
-            logger.info(f'Loaded file {gz_file} with shape {df.shape}')
-        except Exception as e:
-            logger.error(f'Failed to load file {gz_file}. Error: {e}')
+    combine_df["work"] = combine_df.w_geocode.str.zfill(15).str[:11]
+    combine_df["home"] = combine_df.h_geocode.str.zfill(15).str[:11]
+    od_final = combine_df.groupby(["work", "home"], as_index=False)["S000"].sum()
 
-    if not dataframes:
-        logger.warning('No data loaded to process.')
-        return pd.DataFrame()
-
-    # Concatenate all DataFrames into one
-    combine_df = pd.DataFrame(pd.concat(dataframes, ignore_index=True))
-    logger.info(f'combined with shape {combine_df.shape}')
-
-    output_path = os.path.join(inter_data_dir, f"od/{state_ab}-tract-od-2020.csv")
-    logger.info(f'Saving to {output_path}')
-
-    if state_code in ['01', '02', '04', '05', '06', '08', '09']:
-        combine_df['work'] = combine_df.w_geocode.astype(str).str[:10]
-        combine_df['home'] = combine_df.h_geocode.astype(str).str[:10]
-        temp_df = combine_df.loc[:, ['work', 'home', 'S000']]
-        temp_od = temp_df.groupby(['work', 'home']).sum()
-        od_final = temp_od.reset_index()
-        od_final = od_final.astype({"work": str, "home": str})
+    file_name = f"{state_ab.lower()}-tract-od-2020.csv"
+    for out_dir in (inter_data_dir, processed_data_dir):
+        output_path = os.path.join(out_dir, "od", file_name)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        logger.info(f"Saving {len(od_final)} tract pairs to {output_path}")
         od_final.to_csv(output_path)
-    else:
-        combine_df['work'] = combine_df.w_geocode.astype(str).str[:11]
-        combine_df['home'] = combine_df.h_geocode.astype(str).str[:11]
-        temp_df = combine_df.loc[:, ['work', 'home', 'S000']]
-        temp_od = temp_df.groupby(['work', 'home']).sum()
-        od_final = temp_od.reset_index()
-        od_final = od_final.astype({"work": str, "home": str})
-        od_final.to_csv(output_path)
+    return od_final
 
 
 def tract_geoid(value):
