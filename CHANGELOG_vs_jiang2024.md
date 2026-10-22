@@ -67,3 +67,20 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 - `EPSG:26912` is right only for Utah. Multi-state runs need a per-state projected CRS (it is a parameter of `EducationSites`/`tract_buffers`). It could also move to `src/settings.py` alongside Agent E's road projection.
 - Sites with missing `ENROLLMENT` never count as having room (same as before), so every assignment to them goes through the logged fallback.
 - Schools and daycares have separate counters; if an `eduID` appears in both tables, its two counts are not combined.
+
+## Agent G: education inputs
+
+- `code/0-preprocess/prepare-edu/build_edu_sites.py` (new): builds `processed-data/edu/<state>_school_id.gpkg` and `<state>_daycare_id.gpkg` (default `--state ut`) from the EPA/ORNL "Educational Institutions, US, 2015, ORNL, SEGS" FileGDB (`https://edg.epa.gov/data/Public/OEI/ORNL_Education/ORNL_Education.zip`, read from `raw-data/edu/epa2015/`; `--download` fetches it with TLS verification on). The authors' preparation script was not published, so these files use the paper's cited source but are not guaranteed to match the authors' exact files.
+- Same driver, layer mapping: schools = `PublicSchools` + `PrivateSchools` (filtered on `STATE`); daycare = `DayCareCenters`; `CollegesUniversities`/`SupplementalColleges` not used (school assignment covers ages 5-17). All records kept regardless of NCES `STATUS` (closed/future schools included). See open decisions.
+- Same driver, ages: school `s_age`/`e_age` from the existing `src/preprocess_data.py` `__school_start_age__`/`__school_end_age__` on `LEVEL` (helpers unchanged); daycare rows get `s_age=0`, `e_age=4` (paper Step 2), which the assignment module does not read.
+- Same driver, `ENROLLMENT`: schools use the source `ENROLLMENT`; daycare has no such field and uses `POPULATION`. Null or negative NCES codes (-1, -2, -9) become 0 (original value kept in `ENROLLMENT_SRC`, flagged `ENR_MISSING`), so those sites only receive children through the over-capacity fallback. Utah: 74 of 1,218 schools affected, 0 of 268 daycares.
+- Same driver, IDs and geometry: `eduID` = `<state FIPS>s<5-digit n>` (schools) / `<state FIPS>d<n>` (daycare), numbered after sorting by layer and source ID, because `src/create_social_networks.py` selects school/daycare/work members with `wp.str.contains('s'/'d'/'w')`; `count` = 0; output reprojected from EPSG:4326 to EPSG:4269 (the tract CRS) and `LATITUDE`/`LONGITUDE` re-taken from the output geometry. The authors' original ID scheme is unknown.
+- Same driver, `--source nces_ccd`: stub that raises `NotImplementedError`; placeholder for a later USBE/NCES CCD replacement.
+- `tests/test_edu_sites.py` (new): synthetic zipped-FileGDB fixtures, no network. No effect on outputs.
+
+### Open decisions (Agent G)
+
+- Missing/negative enrollment set to 0 (site kept, used only as fallback) vs dropping those sites or imputing from `POPULATION`/`FULL_TIME_TEACHERS`.
+- Daycare capacity from `POPULATION` (the only size field in `DayCareCenters`); the layer does not say whether it is licensed capacity or enrollment.
+- Whether to drop public schools with NCES `STATUS` closed (2) or future (7) (Utah: 25 and 24 records), and whether to include private schools and `Other`/`Unknown` LEVEL schools (mapped to 5-17 by the existing helper). `START_GRADE`/`END_GRADE` would give tighter bands, but that changes the age rule.
+- Sites are limited to the state's own records, so children near state borders cannot be assigned an out-of-state site.
