@@ -6,6 +6,7 @@ A **synthetic population** consists of artificial people assembled to match sele
 
 - **Original study:** [Scientific Data article](https://www.nature.com/articles/s41597-024-03970-1).
 - **Published outputs:** [OSF datasets](https://osf.io/fpnc2/). The original repository reports 85 GB uncompressed nationally, distributed by state; check release documentation before downloading.
+- **Download guide:** [State-download file formats](docs/state-download-format.md), including CSV columns, shared IDs, and a proposed Utah County pilot.
 - **Fork scope:** document the existing implementation and its assumptions. Research extensions belong in a separate fork.
 
 Code links below establish what the implementation does, not why a modeling choice is empirically justified. References to the [original paper](https://doi.org/10.1038/s41597-024-03970-1) identify its stated assumptions and rationale; page numbers refer to the published PDF. Census and software-documentation links provide definitions and API behavior. Where the paper and code differ, both are described rather than treating them as interchangeable.
