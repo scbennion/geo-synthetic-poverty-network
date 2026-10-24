@@ -1,0 +1,5 @@
+# Independent of the original synthesis pipeline. Python 3.12+.
+neo4j==6.4.1
+pyproj==3.8.0
+shapely==2.2.0
+pytest==9.1.1

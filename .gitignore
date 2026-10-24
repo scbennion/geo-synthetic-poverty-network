@@ -1,0 +1,5 @@
+# Python caches and the isolated pilot environment.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv-utah/
