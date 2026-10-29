@@ -158,3 +158,22 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 ### Open decision: out-of-state jobs
 
 Utah residents' jobs in other states are in those states' `aux` files, which the pipeline does not read, so those residents get no workplace. Across the 2020 `aux` files of every other state (Alaska has no 2020 file), Utah residents hold 28,074 jobs out of state in 4,840 work tracts: 1.9% of their 1,463,937 jobs (Salt Lake County 1.4%). Largest destinations: NV 4,375, CA 4,312, ID 3,641, CO 3,459, WY 2,770, AZ 2,432. Including them means reading every state's `aux` file for in-state homes and building `WP_CNT` for the destination tracts from those states' own OD tables.
+
+## Salt Lake County integration run (2026-10-23)
+
+Full chain for `--state ut --counties 035 --seed 42`, run twice from the same inputs: synthesis → household/education networks → work network → `validation_population.py`, `validation_hhold.py`, `validation_tract_avg_hhold.py`. Inputs were built with this branch's preprocessing (2020 DP1, TIGER 2020 roads and urban areas, LODES8 2020, CBP 2020, EPA/ORNL 2015 education sites).
+
+- Reproducibility: all 18 output files are byte-identical between the two runs, including the population GeoPackage (202 MB), the four network files and the validation plots.
+- Synthesis: 250 of 251 tracts; 1,185,222 people (595,600 male, 589,622 female) and 32,448 workplaces. Age/sex and all 11 household-type totals equal DP1 for the 250 tracts. About 32 min of compute (about 7.5 s per tract); networks and validation about 1 min.
+- Workers: 559,723 in the work population; 0 `wNotFound` and 6 `wNone` workplace IDs.
+- Failed tract `49035980000` (tract 9800: 16 people, 3 households): 8 adults get no household from the leftover-person step ("No suitable households available for adults"), so they have no home point and `check_urban` raises on the missing geometry. The original code fails the same way; leftover-person handling is a modelling rule left unchanged.
+- Daycare overflow: 64,059 children aged 0–4 were placed at full centres. Every child under 5 goes to daycare, but the 2015 layer has about 13,700 places near Salt Lake, so after the nearest centres fill, children go to a random full centre within 11 km instead of the nearest. Before the capacity counter, all went to the nearest centre.
+- School overflow: 16,425 children in 20 tracts, mostly the fast-growing south-west valley (`1143xx`, `1152xx`, `1139xx`), likely because schools built after 2015 are missing from the 2015 layer.
+- Household size: tract `49035112818` has 3,159 people in 3 household IDs (average 1,053) because all group-quarters residents share one ID; elsewhere the median absolute difference from DP1 is 0.001.
+
+### Open decisions from the run
+
+- Daycare participation: keep "all children 0–4 attend", send overflow to the nearest full centre, or model an attendance share (a modelling change).
+- School coverage: replace or supplement the 2015 layer for areas that grew after 2015 (the `--source nces_ccd` stub).
+- Failed tracts lose all residents; the leftover-person rule could place unhoused adults in an existing or new household instead (a modelling change).
+- The driver logs tract errors with `exc_info=True`, which loguru ignores, so error logs carry no traceback; `logger.opt(exception=e)` would record it.

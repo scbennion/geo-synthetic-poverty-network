@@ -7,7 +7,7 @@ A **synthetic population** consists of artificial people assembled to match sele
 - **Original study:** [Scientific Data article](https://www.nature.com/articles/s41597-024-03970-1).
 - **Published outputs:** [OSF datasets](https://osf.io/fpnc2/). The original repository reports 85 GB uncompressed nationally, distributed by state; check release documentation before downloading.
 - **Fork scope:** document the existing implementation and its assumptions. Research extensions belong in a separate fork.
-- **Pipeline fixes:** the `task2-pipeline-fixes` branch fixes plumbing so the pipeline runs end to end for one state (Utah pilot): packaging, `--state`/`--counties` options, one seed, file handoffs, and several input-preparation bugs. Modelling rules are unchanged. Every behavioural difference from Jiang et al. (2024) is listed in [`CHANGELOG_vs_jiang2024.md`](CHANGELOG_vs_jiang2024.md), with the open decisions.
+- **Pipeline fixes:** the `task2-pipeline-fixes` branch fixes plumbing so the pipeline runs end to end for one state (Utah pilot): packaging, `--state`/`--counties` options, one seed, file handoffs, and several input-preparation bugs. Modelling rules are unchanged. Every behavioural difference from Jiang et al. (2024) is listed in [`CHANGELOG_vs_jiang2024.md`](CHANGELOG_vs_jiang2024.md), and the open decisions and known gaps are in [`docs/open-decisions.md`](docs/open-decisions.md).
 
 Code links below establish what the implementation does, not why a modeling choice is empirically justified. References to the [original paper](https://doi.org/10.1038/s41597-024-03970-1) identify its stated assumptions and rationale; page numbers refer to the published PDF. Census and software-documentation links provide definitions and API behavior. Where the paper and code differ, both are described rather than treating them as interchangeable.
 
@@ -79,7 +79,7 @@ These are simplifications, differences, or missing checks that affect interpreta
 | Ages 90+ disappear as exact ages | Everyone in the Census “85 and older” category is reassigned an age from 85 to 89. The population count stays the same, but the oldest ages are not preserved. | [Age generator](src/ctreate_individuals.py#L29) |
 | Partner ages differ between paper and code | For a male aged 35, the paper's main rule permits females aged 20–40, while the code initially permits 30–50. Single-parent upper-age rules differ too. | [Paper, Table 2](https://doi.org/10.1038/s41597-024-03970-1), [partner details](#member-selection-order-and-partners) |
 | Requested family composition is not guaranteed | Child shortages can lead to adult replacements, and leftover assignments alter household sizes. No direct parent/child or spouse IDs are saved. | [Household code](src/assign_household.py#L353) |
-| School/daycare sites can exceed enrollment | Places are now counted as children are assigned, across all tracts of a state run. A site goes over its `ENROLLMENT` only when every candidate in the search area is full; each such case is logged. When all sites within 11 km are full, the code overfills one of them rather than widening the search to 100 km. | [`__find_edu_ID__`](src/assign_education_site.py), [education assignment](#education-assignment) |
+| School/daycare sites can exceed enrollment | Places are now counted as children are assigned, across all tracts of a state run. A site goes over its `ENROLLMENT` only when every candidate in the search area is full; each such case is logged. When all sites within 11 km are full, the code overfills one of them rather than widening the search to 100 km. In the Salt Lake run this happened for 64,059 children aged 0–4 (every child under 5 is sent to daycare, but the 2015 layer has about 13,700 places nearby) and 16,425 school children in fast-growing tracts likely missing post-2015 schools. | [`__find_edu_ID__`](src/assign_education_site.py), [education assignment](#education-assignment) |
 | Road placement differs from the paper | Spacing now matches the paper's 50 m (homes) and 20 m (workplaces), measured in a Utah-specific metric projection. Workplace candidates still use local-road endpoints instead of road intersections. | [Paper, Steps 1–2](https://doi.org/10.1038/s41597-024-03970-1), [placement code](src/create_space.py) |
 | Primary-road comments do not match the filter | Comments mention primary roads, but the workplace filter selects `S1200` secondary roads. The paper also describes secondary roads; primary-road exclusion is a code/comment discrepancy, not a claim that the paper requires primary roads. | [Workplace road filter](src/create_space.py#L96), [paper Step 2](https://doi.org/10.1038/s41597-024-03970-1) |
 | Seeds are per run, not per tract | `--seed` now controls every random draw, so the same inputs and seed give byte-identical outputs. All tracts share one random stream in GEOID order, so a `--counties` run does not produce the same people for those tracts as a full-state run with the same seed. | [`seed_everything`](src/seeding.py), [synthesis driver](code/1-population-synthesis/run-synthesis-by-state.py) |
@@ -588,6 +588,15 @@ python code/3-validation/validation_tract_avg_hhold.py --state ut --counties 035
 ```
 
 Add `--dry-run` to the synthesis driver to list the tracts it would process. Synthesis always reads the full-state road file, even for a county run.
+
+**Verified run (Salt Lake County, seed 42, 2026-10-23):** the commands above ran end to end twice and produced byte-identical outputs (all 18 files).
+- **Tracts:** 250 of 251 succeeded. Tract `49035980000` (16 people) failed because 8 adults received no household.
+- **Population and households:** 1,185,222 people. Age/sex and household-type totals equal DP1 for the successful tracts.
+- **Workers:** 559,723.
+- **Over-capacity placements:** 64,059 children aged 0–4 at full daycares, and 16,425 children at full schools in 20 fast-growing tracts.
+- **Run time:** synthesis needs about 32 minutes of compute (about 7.5 s per tract); networks and validation about 1 minute. Keep the machine awake: macOS sleep, including a closed lid, pauses the run.
+
+Details are in [`CHANGELOG_vs_jiang2024.md`](CHANGELOG_vs_jiang2024.md).
 
 The requirements now specify Notebook 6.5.7. During cloud setup, the former 6.5.6 pin required `pyzmq<25`, whose source build failed on the available Python 3.12/compiler combination. Notebook 6.5.7 allowed current ZeroMQ wheels and passed notebook startup and kernel checks. This resolves that specific dependency issue; the separate editable-package and data-pipeline gaps still apply.
 
