@@ -564,6 +564,8 @@ Input-matching checks establish consistency with construction targets; they do n
 
 ## Development environment and execution notes
 
+A step-by-step guide from setup to a Neo4j graph is in [`docs/pipeline.md`](docs/pipeline.md).
+
 The Python target is 3.12. Use a separate virtual environment (a directory holding this project's installed packages), then `pip install -r requirements.txt`. Its `-e .` line installs this repository through [`pyproject.toml`](pyproject.toml), so `src` imports without `PYTHONPATH`. Run the tests with `python -m pytest`.
 
 Every driver takes `--state` (abbreviation or FIPS code) and, where it makes sense, `--counties` (3-digit county codes within that state). Synthesis and network drivers also take `--seed` (default 42). Without `--state`, synthesis, network and validation drivers run all 51 areas; preprocessing drivers default to `ut`. The full order for one county, with data under `GSPN_DATA_DIR`:
