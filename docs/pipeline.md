@@ -235,8 +235,6 @@ neo4j-cli query --env $ENV --database ut-c035 --rw "$(cat code/4-knowledge-graph
 The import prints the node and relationship counts it created. They should equal the row counts
 of the CSV files. For Salt Lake County that is 1,652,621 nodes and 6,305,346 relationships.
 
-Bulk import takes around 45 seconds
-
 To replace a database, drop it first
 (`neo4j-cli query --env $ENV --database system --rw 'DROP DATABASE `ut-c035`'`), then rerun the
 import and the three queries.
@@ -247,6 +245,8 @@ In Desktop, open the instance and pick `ut-c035` in the database list, or start 
 ``USE `ut-c035` ``. Queries against the default `neo4j` database find nothing. The graph model,
 example queries and how to view the whole county at tract level are in
 [`knowledge-graph.md`](knowledge-graph.md).
+
+To view a graph snippet, navigate to the Bloom tab, and select Database: ut-c035 from the menu bar at the top
 
 ## Troubleshooting
 
