@@ -202,21 +202,40 @@ Each run gets its own database. Neo4j database names can't contain underscores, 
 `ut_c035` becomes database `ut-c035`.
 
 ```bash
+# Path to the credentials file read by neo4j-cli; use the location where you saved yours.
 ENV=~/.config/gspn/neo4j.env
+
+# Path to your Neo4j instance (server) folder, which contains bin/neo4j-admin; replace the placeholder.
+# You can find it by going to the Neo4J desktop app, clicking on the three dots by your instance,
+# and then clicking "overview". It should be saved in "Path"
 DBMS="<root_path from: neo4j-cli desktop dbms list>"
+
+# Tell Neo4j's importer where to find Java. Replace <jre folder> with the actual folder name.
+# export makes JAVA_HOME available to programs launched from this terminal session.
+# Although Neo4J supports Python commands, Java runs underneath
+# This line may be unnecessary, when my desktop app installed it installed java anyway
 export JAVA_HOME="$HOME/Library/Application Support/neo4j-desktop/Application/Cache/runtime/<jre folder>/Contents/Home"
 
-# Bulk import into a new database (the instance can stay running)
+# Bulk import into a new database (the instance can stay running) 
 "$DBMS/bin/neo4j-admin" database import full ut-c035 @data/neo4j-import/ut_c035/import.args
 
 # Register it, then add constraints and the tract summary layer
+
+# Tells the running Neo4j server to recognize the imported ut-c035 database files and register it with the server. WAIT waits for it to start.
+# --rw stands for read-write, telling neo4j-cli to allow commands that change the database. neo4j-cli is Neo4j's terminal language
 neo4j-cli query --env $ENV --database system --rw 'CREATE DATABASE `ut-c035` WAIT'
+
+# Runs the file’s rules to keep node IDs unique and adds indexes that speed up searches. See code/4-knowledge-graph/constraints.cypher
 neo4j-cli query --env $ENV --database ut-c035 --rw "$(cat code/4-knowledge-graph/constraints.cypher)"
+
+# Calculates tract totals and connections, such as commuting flows, so you can explore the county at tract level.
 neo4j-cli query --env $ENV --database ut-c035 --rw "$(cat code/4-knowledge-graph/tract_summary.cypher)"
 ```
 
 The import prints the node and relationship counts it created. They should equal the row counts
 of the CSV files. For Salt Lake County that is 1,652,621 nodes and 6,305,346 relationships.
+
+Bulk import takes around 45 seconds
 
 To replace a database, drop it first
 (`neo4j-cli query --env $ENV --database system --rw 'DROP DATABASE `ut-c035`'`), then rerun the
