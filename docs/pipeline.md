@@ -256,6 +256,7 @@ example queries and how to view the whole county at tract level are in
 | Synthesis takes hours | The machine slept. Keep it awake (see *Before you start*). |
 | Network step finishes instantly with old results | A network file already exists and is not rebuilt. Delete it first. |
 | A rerun's outputs differ from an earlier run | Different library versions (`requirements.txt` pins none) or a rebuilt `us_tract_number_work.json`. See [`open-decisions.md`](open-decisions.md). |
+| Can't find `neo4j-cli` | `neo4j-cli` is not installed, run `pip install neo4j-cli` |
 | `neo4j-admin` can't find Java | Set `JAVA_HOME` to the Java runtime Desktop downloaded, as above. |
 | `neo4j-admin import` refuses to run | The database already exists. Drop it first. |
 | Cypher warnings that `Person` or `MEMBER_OF` don't exist | The query ran against the default `neo4j` database. Switch to the run's database. |
