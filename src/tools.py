@@ -463,4 +463,20 @@ def check_urban(data, boundary):
     return True in data.geometry.intersects(boundary.geometry).unique()
 
 
+def classify_urban(people, boundary):
+    """Check each distinct home once; touching an urban boundary counts as urban."""
+    spatial_index = boundary.sindex
+    homes = {}
+    flags = []
+    for geometry in people.geometry:
+        if geometry is None:
+            # Preserve the existing error recorded for a missing home location.
+            raise AttributeError("'NoneType' object has no attribute 'intersects'")
+        key = geometry.wkb
+        if key not in homes:
+            homes[key] = len(spatial_index.query(geometry, predicate='intersects')) > 0
+        flags.append(homes[key])
+    return pd.Series(flags, index=people.index, dtype=bool)
+
+
 

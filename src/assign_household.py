@@ -71,8 +71,12 @@ def __assign_household_order__(tract, people, rng=None):
         hhold_df.apply(__hhhold_2_people__, args=(people,), axis=1)
 
         # 4 assign left population randomly to household other than alone household
-        people[['hhold', 'htype', 'assigned']] = people.apply(
-            lambda row: pd.Series(__assign_left_pop_hhold__(row, hhold_df, rng)), axis=1)
+        choices = _left_household_choices(hhold_df)
+        results = [__assign_left_pop_hhold__(row, hhold_df, rng, choices)
+                   for row in people[['age', 'assigned', 'hhold', 'htype']].itertuples(index=False)]
+        people[['hhold', 'htype', 'assigned']] = pd.DataFrame(
+            [result if result is not None else (np.nan, np.nan, np.nan) for result in results],
+            index=people.index, columns=['hhold', 'htype', 'assigned'])
         #print("after 1 to 4 People Left", len(people[people['assigned'] == 0]))
 
 '''
@@ -594,68 +598,52 @@ def __get_group_quarter_ids__(x, people, upper_age, lower_age, number):
     return member_list
 
 
-def __assign_left_pop_hhold__(individual, hhold_df, rng=None):
+def _left_household_choices(hhold_df):
+    """Household candidates do not change while placing leftover people."""
+    choices = {}
+    for group, types, weights in (
+        ('kid', [1, 3, 6, 9], {1: 0.45, 3: 0.45, 6: 0.1, 9: 0.1}),
+        ('eighteen', [1, 3, 10], {1: 0.2, 3: 0.2, 10: 0.6}),
+        ('adult', [0, 1, 2, 3, 10], {0: 0.1, 1: 0.1, 2: 0.1, 3: 0.1, 10: 0.6}),
+    ):
+        candidates = hhold_df[hhold_df['htype'].isin(types)]
+        ids = list(candidates.hid)
+        probabilities = np.array([weights[t] for t in candidates.htype])
+        if ids:
+            probabilities = probabilities / np.sum(probabilities)
+        choices[group] = (ids, probabilities)
+    choices['kid_fallback'] = (list(hhold_df[hhold_df['htype'] == 10].hid), None)
+    # Match the original first-row lookup even when a household ID is repeated.
+    choices['types'] = hhold_df.drop_duplicates('hid').set_index('hid')['htype'].to_dict()
+    return choices
+
+
+def __assign_left_pop_hhold__(individual, hhold_df, rng=None, choices=None):
+    """Place one leftover person using optional choices prepared for this tract."""
     rng = np.random if rng is None else rng  # numpy Generator; None = global np.random
-    # print("in assign left")
-
-    if individual.assigned == 0:
-        if individual.age < 18:
-            hhold_for_kid_list = list(hhold_df[hhold_df['htype'].isin([1, 3, 6, 9])].hid)
-            # Assuming some logic to choose a household for the kid here
-            if hhold_for_kid_list:
-                probabilities = [0.45 if hhold_type in [1, 3] else 0.1 for hhold_type in
-                                 hhold_df.loc[hhold_df['hid'].isin(hhold_for_kid_list), 'htype']]
-                # Normalize probabilities
-                probabilities /= np.sum(probabilities)
-                # Randomly choose household with probabilities
-                household_id = rng.choice(hhold_for_kid_list, p=probabilities)
-                assigned_household = household_id
-                assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
-                assigned_status = 1
-                # print(f"Assigned kid to household {assigned_household} type {assigned_htype}")
-                return assigned_household, assigned_htype, assigned_status
-            else:
-                hhold_for_kid_list = list(hhold_df[hhold_df['htype'].isin([10])].hid)
-                if hhold_for_kid_list:
-                    household_id = rng.choice(hhold_for_kid_list)
-                    assigned_household = household_id
-                    assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
-                    assigned_status = 1
-                    # print(f"Assigned kid to household {assigned_household} type {assigned_htype}")
-                    return assigned_household, assigned_htype, assigned_status
-                else:
-                    print("No suitable households available for kids")
-        elif individual.age == 18:
-            hhold_for_nonfam_list = list(hhold_df[hhold_df['htype'].isin([1, 3, 10])].hid)
-            # Assuming some logic to choose a household for the adult here
-            if hhold_for_nonfam_list:
-                probabilities = [0.2 if hhold_type in [1, 3] else 0.6 for hhold_type in
-                                 hhold_df.loc[hhold_df['hid'].isin(hhold_for_nonfam_list), 'htype']]
-                probabilities /= np.sum(probabilities)
-                household_id = rng.choice(hhold_for_nonfam_list, p=probabilities)
-                assigned_household = household_id
-                assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
-                assigned_status = 1
-                # print(f"Assigned 18 ad to household {assigned_household} type {assigned_htype}")
-                return assigned_household, assigned_htype, assigned_status
-            else:
-                print("No suitable households available for 18 adults")
-
-        elif individual.age > 18:
-            hhold_for_nonfam_list = list(hhold_df[hhold_df['htype'].isin([0, 1, 2, 3, 10])].hid)
-            # Assuming some logic to choose a household for the adult here
-            if hhold_for_nonfam_list:
-                probabilities = [0.6 if hhold_type in [10] else 0.1 for hhold_type in
-                                 hhold_df.loc[hhold_df['hid'].isin(hhold_for_nonfam_list), 'htype']]
-                probabilities /= np.sum(probabilities)
-                household_id = rng.choice(hhold_for_nonfam_list, p=probabilities)
-                assigned_household = household_id
-                assigned_htype = hhold_df.loc[hhold_df['hid'] == household_id, 'htype'].iloc[0]
-                assigned_status = 1
-                # print(f"Assigned adult to household {assigned_household} type {assigned_htype}")
-                return assigned_household, assigned_htype, assigned_status
-            else:
-                print("No suitable households available for adults")
-
-    else:
+    if individual.assigned != 0:
         return individual.hhold, individual.htype, individual.assigned
+
+    choices = _left_household_choices(hhold_df) if choices is None else choices
+    if individual.age < 18:
+        group, message = 'kid', 'kids'
+    elif individual.age == 18:
+        group, message = 'eighteen', '18 adults'
+    elif individual.age > 18:
+        group, message = 'adult', 'adults'
+    else:
+        return None
+
+    ids, probabilities = choices[group]
+    if not ids and group == 'kid':
+        ids, probabilities = choices['kid_fallback']
+    if not ids:
+        print(f'No suitable households available for {message}')
+        return None
+
+    # Keep one scalar draw per person, in the original candidate order.
+    if probabilities is None:
+        household_id = rng.choice(ids)
+    else:
+        household_id = rng.choice(ids, p=probabilities)
+    return household_id, choices['types'][household_id], 1

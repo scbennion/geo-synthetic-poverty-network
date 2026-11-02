@@ -40,7 +40,7 @@ from src.assign_workplace import __assign_workplaces__
 from src.create_space import __create_work_location__
 from src.assign_education_site import __assign_education_site__, EducationSites
 
-from src.tools import check_urban
+from src.tools import classify_urban
 from src.tools import __verfication__
 from src.tools import __collect_results__
 
@@ -106,7 +106,7 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
 
         # Step 3: Check Urban population
         with timing.measure('urban classification', tract.name, 'tract_stage'):
-            people['urban'] = people.apply(lambda row: check_urban(row, urban), axis=1)
+            people['urban'] = classify_urban(people, urban)
 
         # Step 4: Verification
         ver_df = measured('verification', __verfication__, tract, people)

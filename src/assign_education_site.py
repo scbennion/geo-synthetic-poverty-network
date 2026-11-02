@@ -84,16 +84,17 @@ def __assign_education_site__(tract, people, school, daycare, tract_crs=GEOGRAPH
     daycare = _as_sites(daycare, tract_crs)
 
     buffers = tract_buffers(tract.geometry, tract_crs, school.projected_crs)
+    school_candidates, daycare_candidates = {}, {}
 
     # Assign School
     school_kids_index = people[(people['age'] >= 5) & (people['age'] <= 17)].index
     for idx in school_kids_index:
-        people.at[idx, "wp"] = __assign_eduID__(idx, tract, people, school, buffers)
+        people.at[idx, "wp"] = __assign_eduID__(idx, tract, people, school, buffers, school_candidates)
 
     # Assign Daycare
     daycare_kids_index = people[(people['age'] <= 4)].index
     for idx in daycare_kids_index:
-        people.at[idx, "wp"] = __assign_eduID__(idx, tract, people, daycare, buffers)  # .at is used to assign single value
+        people.at[idx, "wp"] = __assign_eduID__(idx, tract, people, daycare, buffers, daycare_candidates)
 
 
 def _sites_in(edu, buff, candidates):
@@ -101,7 +102,7 @@ def _sites_in(edu, buff, candidates):
     return candidates[geom.intersects(buff).to_numpy()]
 
 
-def __assign_eduID__(data, tract, people, edu, buffers):
+def __assign_eduID__(data, tract, people, edu, buffers, candidate_cache=None):
     '''
 
     :param data: kids info
@@ -109,6 +110,7 @@ def __assign_eduID__(data, tract, people, edu, buffers):
     :param people: people generated in previous steps with geo-location info, this is used to get the kids info
     :param edu: EducationSites for daycare or school
     :param buffers: (near, far) tract buffers in the projected CRS
+    :param candidate_cache: optional candidate lists shared only within this tract
     :return: daycare or school id
     '''
     edu_df = edu.sites
@@ -117,15 +119,21 @@ def __assign_eduID__(data, tract, people, edu, buffers):
     kid_y = geo_loc.x
     age = people.loc[data, 'age']
 
-    if age <= 4:  # daycare: no age filter
-        edu_in_age = edu_df
-    else:  # school
-        edu_in_age = edu_df[(edu_df['s_age'] <= age) & (edu_df['e_age'] >= age)]
+    key = 'daycare' if age <= 4 else age
+    if candidate_cache is None or key not in candidate_cache:
+        if age <= 4:  # daycare: no age filter
+            edu_in_age = edu_df
+        else:  # school
+            edu_in_age = edu_df[(edu_df['s_age'] <= age) & (edu_df['e_age'] >= age)]
 
-    # Search the near buffer; widen to the far buffer only if it has no candidates at all.
-    edu_site_in_buffer = _sites_in(edu, buffers[0], edu_in_age)
-    if len(edu_site_in_buffer) == 0:
-        edu_site_in_buffer = _sites_in(edu, buffers[1], edu_in_age)
+        # Widen only when the near pool is empty, even if its sites are full.
+        edu_site_in_buffer = _sites_in(edu, buffers[0], edu_in_age)
+        if len(edu_site_in_buffer) == 0:
+            edu_site_in_buffer = _sites_in(edu, buffers[1], edu_in_age)
+        if candidate_cache is not None:
+            candidate_cache[key] = edu_site_in_buffer
+    else:
+        edu_site_in_buffer = candidate_cache[key]
 
     return __find_edu_ID__(kid_x, kid_y, edu_site_in_buffer, edu, tract.name, age)
 

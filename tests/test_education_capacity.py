@@ -182,3 +182,42 @@ def test_far_buffer_used_only_when_near_empty():
     rows = [('S_150km', -111.895, 40.71 + 150 / 111.0, 5, 17, 5, 0)]
     with pytest.raises(ValueError, match='no education site'):
         _run([t], [[8]], EducationSites(_sites(rows)), EducationSites(_daycares()))
+
+
+def test_cached_candidates_preserve_assignments_and_random_state(monkeypatch):
+    import random
+
+    original_assign = aes.__assign_eduID__
+    original_search = aes._sites_in
+    searches = []
+
+    def counted_search(*args):
+        searches.append(1)
+        return original_search(*args)
+
+    ages = [[6] * 15 + [8] * 3 + [0, 1, 2, 3, 4]]
+    state = random.getstate()
+    try:
+        random.seed(42)
+        school, daycare = EducationSites(_schools()), EducationSites(_daycares())
+        monkeypatch.setattr(aes, '_sites_in', counted_search)
+        cached = _run(_tracts()[:1], ages, school, daycare)
+        cached_state = random.getstate()
+        assert len(searches) == 3  # age 6, age 8, and all daycare ages
+
+        # Re-run the original per-child search path without a candidate cache.
+        def uncached(data, tract, people, edu, buffers, candidate_cache=None):
+            return original_assign(data, tract, people, edu, buffers)
+
+        monkeypatch.setattr(aes, '__assign_eduID__', uncached)
+        random.seed(42)
+        reference_school, reference_daycare = EducationSites(_schools()), EducationSites(_daycares())
+        reference = _run(_tracts()[:1], ages, reference_school, reference_daycare)
+        pd.testing.assert_frame_equal(cached, reference)
+        assert random.getstate() == cached_state
+        assert school.count == reference_school.count
+        assert daycare.count == reference_daycare.count
+        assert school.fallbacks == reference_school.fallbacks
+        assert daycare.fallbacks == reference_daycare.fallbacks
+    finally:
+        random.setstate(state)

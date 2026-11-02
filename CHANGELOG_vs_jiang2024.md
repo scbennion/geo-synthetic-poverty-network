@@ -177,3 +177,10 @@ Full chain for `--state ut --counties 035 --seed 42`, run twice from the same in
 - School coverage: replace or supplement the 2015 layer for areas that grew after 2015 (the `--source nces_ccd` stub).
 - Failed tracts lose all residents; the leftover-person rule could place unhoused adults in an existing or new household instead (a modelling change).
 - The driver logs tract errors with `exc_info=True`, which loguru ignores, so error logs carry no traceback; `logger.opt(exception=e)` would record it.
+
+## Runtime measurement and optimization
+
+- [Timing reports](src/timing.py): synthesis writes `*_timing.csv` and `*_timing_summary.csv` with stage durations and separate summaries for successful and failed tracts. Adds diagnostic outputs without changing population assignments.
+- [Synthesis driver](code/1-population-synthesis/run-synthesis-by-state.py): workplace weights are loaded once per run and shared across states.
+- Household assignment reuses household choices and probabilities; education assignment reuses nearby eligible-site lists; urban classification checks each distinct home once. Assignment rules and random draw order are preserved. See [optimization notes](docs/optimization.md) for details.
+- Validation: assignments and random states matched on three real tracts; output files were byte-identical for two synthetic runs. The estimated full rerun is 60–80 minutes against the newer 121-minute baseline. This is a sample-based estimate; the dated 32-minute integration result above is a separate historical measurement.
