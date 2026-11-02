@@ -206,7 +206,7 @@ def test_cached_candidates_preserve_assignments_and_random_state(monkeypatch):
         assert len(searches) == 3  # age 6, age 8, and all daycare ages
 
         # Re-run the original per-child search path without a candidate cache.
-        def uncached(data, tract, people, edu, buffers, candidate_cache=None):
+        def uncached(data, tract, people, edu, buffers, candidate_cache=None, distance_cache=None):
             return original_assign(data, tract, people, edu, buffers)
 
         monkeypatch.setattr(aes, '__assign_eduID__', uncached)
@@ -221,3 +221,22 @@ def test_cached_candidates_preserve_assignments_and_random_state(monkeypatch):
         assert daycare.fallbacks == reference_daycare.fallbacks
     finally:
         random.setstate(state)
+
+
+def test_shared_home_reuses_ranking_but_rechecks_capacity(monkeypatch):
+    calls = []
+    rank = aes._rank_education_sites
+
+    def counted_rank(*args):
+        calls.append(1)
+        return rank(*args)
+
+    monkeypatch.setattr(aes, '_rank_education_sites', counted_rank)
+    tract = _tracts()[0]
+    people = _people(tract.name, -111.90, 40.70, [6, 8, 10, 12, 14])
+    people.geometry = [Point(-111.895, 40.705)] * len(people)
+    school = EducationSites(_schools())
+    __assign_education_site__(tract, people, school, EducationSites(_daycares()))
+    assert len(calls) == 1  # different ages, same home and eligible sites
+    assert people.wp.tolist() == ['S_near'] * 3 + ['S_far'] * 2
+    assert school.count == {'S_near': 3, 'S_far': 2, 'S_hs': 0}

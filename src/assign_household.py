@@ -48,7 +48,11 @@ def __assign_household_order__(tract, people, rng=None):
         # print(hhold_df)
 
         # 1.3 find members using hhold type
-        hhold_df['member'] = hhold_df.apply(lambda x: __find_members__(x, people, rng), axis=1)
+        pool = _MemberPool(people)
+        try:
+            hhold_df['member'] = [__htype_find_members__(kind, pool, rng) for kind in hhold_df.htype]
+        finally:
+            pool.flush()
         # print(hhold_df)
 
         # 2, group unassigned population based on group quarters
@@ -60,15 +64,7 @@ def __assign_household_order__(tract, people, rng=None):
         #print("after gp People Left", len(people[people['assigned'] == 0]))
 
         # 3 , add two cols to people df: 1 is hhold, the other is hhold type
-        def __hhhold_2_people__(hh, people):  ##hh is hhold_df
-            for m in hh.member:
-                # print(m)
-                # print(hh.hid)
-                # print(hh.htype)
-                people.loc[m, 'hhold'] = hh.hid
-                people.loc[m, 'htype'] = hh.htype
-
-        hhold_df.apply(__hhhold_2_people__, args=(people,), axis=1)
+        _write_household_members(hhold_df, people)
 
         # 4 assign left population randomly to household other than alone household
         choices = _left_household_choices(hhold_df)
@@ -227,255 +223,156 @@ def __find_members__(hhold, people, rng=None):
     return member
 
 
+class _MemberPool:
+    """Array views for sequential selection, retaining the population's index order."""
+
+    def __init__(self, people):
+        self.people = people
+        self.index = people.index
+        self.ages = people['age'].to_numpy()
+        self.gender = people['gender'].to_numpy()
+        self.assigned = people['assigned'].to_numpy(copy=True)
+
+    def available(self, lower=0, upper=np.inf, gender=None, upper_exclusive=False):
+        below_upper = self.ages < upper if upper_exclusive else self.ages <= upper
+        mask = (self.assigned == 0) & (self.ages >= lower) & below_upper
+        if gender is not None:
+            mask &= self.gender == gender
+        return self.index[mask]
+
+    def assign(self, ids):
+        self.assigned[self.index.get_indexer(np.atleast_1d(ids))] = 1
+
+    def age(self, person):
+        return self.ages[self.index.get_loc(person)]
+
+    def minimum_age(self, ids):
+        ages = self.ages[self.index.get_indexer(np.atleast_1d(ids))]
+        ages = ages[~pd.isna(ages)]
+        return ages.min() if len(ages) else np.nan
+
+    def flush(self):
+        self.people['assigned'] = self.assigned
+
+
 def __htype_find_members__(type, people, rng=None):
-    '''
-    Finds members based on household type.
+    """Select members with the original candidate order and scalar random draws."""
+    pool = people if isinstance(people, _MemberPool) else _MemberPool(people)
+    try:
+        return _select_members(type, pool, np.random if rng is None else rng)
+    finally:
+        if pool is not people:
+            pool.flush()
 
-    :param type: Household type.
-    :param people: People data.
-    :param rng: numpy Generator; None falls back to the global np.random state.
-    :return: List of member indices.
-    '''
-    rng = np.random if rng is None else rng
-    # use type to find people index
-    member_list = []
 
-    if type == 4:
-        #print(" male alone")
-        type4_list = people[
-            (people['age'] >= 18) & (people['age'] < 65) & (people['gender'] == 'm') & (people['assigned'] == 0)].index
-        if type4_list.any():
-            member_index = random.choice(type4_list)
-            # member_index = random.choice(people[(people['age'] >= 18) & (people['gender'] == 'm') & (people['assigned'] == 0)].index)
-            people.loc[member_index, 'assigned'] = 1  # affter picked change from 0 to 1
-            # return member_index
-            member_list.append(member_index)
-        else:
-            #print(type, "pass")
-            pass
+def _select_members(kind, pool, rng):
+    members = []
+    if kind in (4, 5, 7, 8):
+        gender = 'm' if kind in (4, 5) else 'f'
+        lower, upper = (18, 65) if kind in (4, 7) else (65, np.inf)
+        candidates = pool.available(lower, upper, gender, upper_exclusive=kind in (4, 7))
+        # Keep Index.any(), including its legacy behavior for an integer index of 0.
+        if candidates.any():
+            person = random.choice(candidates)
+            pool.assign(person)
+            members.append(person)
 
-    if type == 5:
-        #print(" male 65 + alone")
-        type5_list = people[(people['age'] >= 65) & (people['gender'] == 'm') & (people['assigned'] == 0)].index
-        if type5_list.any():
-            member_index = random.choice(type5_list)
-            people.loc[member_index, 'assigned'] = 1  # affter picked change from 0 to 1
-            member_list.append(member_index)
-        else:
-            #print(type, "pass")
-            pass
-
-    if type == 7:
-        #print(" female alone")
-        type7_list = people[
-            (people['age'] >= 18) & (people['age'] < 65) & (people['gender'] == 'f') & (people['assigned'] == 0)].index
-        # print("==in find 7 if stat show candidate count", len(type7_list))
-        if type7_list.any():
-            member_index = random.choice(type7_list)
-            # print("==in find 7 if stat show candidate id", member_index)
-            people.loc[member_index, 'assigned'] = 1  # affter picked change from 0 to 1
-            member_list.append(member_index)
-        # return member_list
-        else:
-            #print(type, "pass")
-            pass
-
-    if type == 8:
-        #print(" female 65 + alone")
-        type8_list = people[(people['age'] >= 65) & (people['gender'] == 'f') & (people['assigned'] == 0)].index
-        if type8_list.any():
-            member_index = random.choice(type8_list)
-            people.loc[member_index, 'assigned'] = 1  # affter picked change from 0 to 1
-            member_list.append(member_index)
-        else:
-            #print(type, "pass")
-            pass
-
-    # married and cohabit, add the wife or parterner type 0,1,2,3
-    # pair couples
-    # if type in [0,1,2,3]:
-    if type in [0, 1, 2, 3]:
-        # print("in 2nd if find partner")
-        #print(type, "married and couple")
-        # hhold head
-        # if np.random.beta(3, 1) > 0.6:
-        # print("male head")
-        type0_4_list = people[(people['age'] >= 20) & (people['gender'] == 'm') & (people['assigned'] == 0)].index
-        if len(type0_4_list) == 0:
-            #print(type, "pass due to can not find head")
-            pass
-        else:
-            head_id = random.choice(type0_4_list)
-            # else:
-            # print("female head")
-            # head_id = random.choice(people[(people['age'] >= 21) & (people['age'] <= 64) & (people['gender'] == 'f') & (people['assigned'] == 0)].index)
-            # print(head_id)
-            people.loc[head_id, 'assigned'] = 1
-            member_list.append(head_id)
-
-            # if people.loc[head_id, 'age'] in range(20:24):
-            # print("in 3rd if")
-            head_age = people.loc[head_id, 'age']
-            # if people.loc[head_id, 'age'] >= 20 and people.loc[head_id, 'age'] <= 25:#if husband is 21~24
-            if head_age >= 20 and head_age <= 25:  # if husband is 21~24
-                # print("in 2.1 if", people.loc[head_id, 'age'])
-                member_index = random.choice(people[(people['age'] >= 18) &
-                                                    (people['age'] <= head_age + 15) &
-                                                    (people['gender'] == 'f') &
-                                                    (people['assigned'] == 0)].index)
-                # iindex = pot[pot.isin(range(people.code+17,people.code+20))].index[0]
-                people.loc[member_index, 'assigned'] = 1
-                member_list.append(member_index)
+    if kind in (0, 1, 2, 3):
+        candidates = pool.available(20, gender='m')
+        if len(candidates):
+            head = random.choice(candidates)
+            pool.assign(head)
+            members.append(head)
+            age = pool.age(head)
+            if 20 <= age <= 25:
+                candidates = pool.available(18, age + 15, 'f')
             else:
-                # print("in 2.2 if", people.loc[head_id, 'age'])
-                p_list = people[(people['age'] >= head_age - 5) &
-                                (people['age'] <= head_age + 15) &
-                                (people['gender'] == 'f') &
-                                (people['assigned'] == 0)].index
-                if len(p_list) == 0:
-                    p_list_1 = people[(people['age'] >= 20) &
-                                      (people['age'] <= people.age.max()) &
-                                      (people['gender'] == 'f') &
-                                      (people['assigned'] == 0)].index
+                candidates = pool.available(age - 5, age + 15, 'f')
+                if not len(candidates):
+                    candidates = pool.available(20, np.nanmax(pool.ages), 'f')
+            partner = random.choice(candidates)
+            pool.assign(partner)
+            members.append(partner)
 
-                    # if len(p_list_1) == 0:
-                    #     print(print("hhold type", type, "pass due to can not find wife", "age", head_age))
-                    #     print("another range", len(people[(people['age'] >= head_age - 15) & (people['gender'] == 'f') &
-                    #                                       (people['age'] <= people.age.max()) & (
-                    #                                                   people['assigned'] == 0)].index))
-                    # else:
-                    member_index = random.choice(p_list_1)
-                    # iindex = pot[pot.isin(range(people.code+17,people.code+20))].index[0]
-                    people.loc[member_index, 'assigned'] = 1
-                    member_list.append(member_index)
-                else:
-                    member_index = random.choice(p_list)
-                    people.loc[member_index, 'assigned'] = 1
-                    member_list.append(member_index)
+    if kind in (1, 3):
+        upper, lower = __get_kids_max_min_age__(members, pool)
+        number = max(1, abs(int(rng.normal(2))))
+        members.append(__get_kids_or_friend__(upper, lower, pool, number))
 
-    # hhold with kids get kids
-    # 1 marrie with kids
-    # 3 cocahbiting with Kids
-    # 6 male with kids
-    # 9  female with kids
-    # https://www.census.gov/hhes/families/files/graphics/FM-3.pdf
-    if type in [1, 3, 6, 9]:
-        if type in [1, 3]:
-            #print(type, "Find kids")
-            # print("-in 3.1 if find kids")
-            # print("-hhold type", type)
-            # print("have member:", len(member_list))
-            # print(member_list)
-            # get kids max and min age
-            kids_age_max, kids_age_min = __get_kids_max_min_age__(member_list, people)
-            # print(__get_kids__(kids_age_max, kids_age_min,people))
-            num_of_child = max(1, abs(int(rng.normal(2))))  # gaussian touch
-            member_list.append(__get_kids_or_friend__(kids_age_max, kids_age_min, people, num_of_child))
+    if kind in (6, 9):
+        candidates = pool.available(18, gender='m' if kind == 6 else 'f')
+        if candidates.any():
+            head = random.choice(candidates)
+            pool.assign(head)
+            members.append(head)
+            number = max(1, abs(int(rng.normal(1.6))))
+            upper, lower = __get_kids_max_min_age__(head, pool)
+            members.append(__get_kids_or_friend__(upper, lower, pool, number))
 
-        if type == 6:
-            #print(type, "-male with kids")
-            # print("-hhold type", type)
-            type6_list = people[(people['age'] >= 18) & (people['gender'] == 'm') & (people['assigned'] == 0)].index
+    if kind == 10:
+        candidates = pool.available(18)
+        if candidates.any():
+            head = random.choice(candidates)
+            pool.assign(head)
+            members.append(head)
+            number = max(1, abs(int(rng.normal(1.5))))
+            age = pool.age(head)
+            lower = 18 if 18 <= age <= 22 else age - 15
+            members.append(__get_kids_or_friend__(age + 15, lower, pool, number))
+    return members
 
-            if type6_list.any():
-                head_id = random.choice(type6_list)
-                people.loc[head_id, 'assigned'] = 1
-                member_list.append(head_id)
-
-                num_of_child = max(1, abs(int(rng.normal(1.6))))
-                kids_age_max, kids_age_min = __get_kids_max_min_age__(head_id, people)
-                member_list.append(__get_kids_or_friend__(kids_age_max, kids_age_min, people, num_of_child))
-            # return member_list
-            else:
-                #print(type, "pass")
-                pass
-
-        if type == 9:
-            #print(type, "-female with kids")
-            # print("-hhold type", type)
-
-            type9_list = people[(people['age'] >= 18) & (people['gender'] == 'f') & (people['assigned'] == 0)].index
-            if type9_list.any():
-                head_id = random.choice(type9_list)
-                people.loc[head_id, 'assigned'] = 1
-                member_list.append(head_id)
-
-                num_of_child = max(1, abs(int(rng.normal(1.6))))
-                kids_age_max, kids_age_min = __get_kids_max_min_age__(head_id, people)
-                member_list.append(__get_kids_or_friend__(kids_age_max, kids_age_min, people, num_of_child))
-            # return member_list
-            else:
-                #print(type, "pass")
-                pass
-
-    if type == 10:
-        #print(type, "-non family group")
-        type10_list = people[(people['age'] >= 18) & (people['assigned'] == 0)].index
-        if type10_list.any():
-            #head_id = random.choice(people[(people['age'] >= 18) & (people['assigned'] == 0)].index)
-            head_id = random.choice(type10_list)
-            people.loc[head_id, 'assigned'] = 1
-            member_list.append(head_id)
-
-            # get roommate or friend
-            num_of_friend = max(1, abs(int(rng.normal(1.5))))
-        # print(num_of_friend)
-
-            if people.loc[head_id, 'age'] >= 18 and people.loc[head_id, 'age'] <= 22:
-                firend_age_min = 18
-                firend_age_max = people.loc[head_id, 'age'].min() + 15
-            else:
-                firend_age_min = people.loc[head_id, 'age'].min() - 15
-                firend_age_max = people.loc[head_id, 'age'].min() + 15
-
-        #print("---kids_age_max", firend_age_max)
-        #print("---kids_age_min", firend_age_min)
-
-        #friend_age_max, firend_age_min = __get_kids_max_min_age__(head_id, people)
-            member_list.append(__get_kids_or_friend__(firend_age_max, firend_age_min, people, num_of_friend))
-        else:
-            pass
-
-    return member_list
 
 def __get_kids_max_min_age__(indi_list, people):
-    #print("in __get_kids_max_min_age__")
-    if (people.loc[indi_list, 'age'].min() - 18) > 18:
-        age_max = 18
-    else:
-        age_max = people.loc[indi_list, 'age'].min() - 18
-        #print("---kids_age_max", age_max)
-    age_min = 0
-    #print(age_max, age_min)
-    return age_max, age_min
+    age = (people.minimum_age(indi_list) if isinstance(people, _MemberPool)
+           else people.loc[indi_list, 'age'].min())
+    upper = age - 18
+    return (18 if upper > 18 else upper), 0
 
 
 def __get_kids_or_friend__(age_max, age_min, people, number):
-    # print("---in __get_kids__")
+    pool = people if isinstance(people, _MemberPool) else _MemberPool(people)
+    try:
+        candidates = list(pool.available(age_min, age_max))
+        if len(candidates) < number:
+            candidates = list(pool.available(18))
+            if not candidates:
+                return None
+        selected = random.sample(candidates, number)
+        pool.assign(selected)
+        return selected
+    finally:
+        if pool is not people:
+            pool.flush()
 
-    selected_index_list = list(people[(people['age'] <= age_max) &
-                                      (people['age'] >= age_min) &
-                                      (people['assigned'] == 0)].index)
 
-    if len(selected_index_list) >= number:
-        # Sample num_of_child unique indices from the eligible_indices list
-        id_index = random.sample(selected_index_list, number)
-        people.loc[id_index, 'assigned'] = 1
-        # print("---in 3rd if find kids kids index", kids_index)
-        return id_index
-        # member_list.append(kids_index)
-    else:
+def _write_household_members(households, people):
+    """Collect membership in household order, then write each column once."""
+    assignments = {}
+    for household in households.itertuples(index=False):
+        for member in household.member:
+            ids = member if isinstance(member, list) else [member]
+            for person in ids:
+                if person not in people.index:
+                    # Preserve legacy handling of missing/invalid member IDs.
+                    return _write_household_members_scalar(households, people)
+                assignments[person] = (household.hid, household.htype)
+    if not assignments:
+        return
+    records = pd.DataFrame.from_dict(assignments, orient='index', columns=['hhold', 'htype'])
+    if 'hhold' not in people:
+        people['hhold'] = records['hhold'].reindex(people.index)
+    if 'htype' not in people:
+        people['htype'] = np.nan
+    people.loc[records.index, 'hhold'] = records['hhold']
+    people.loc[records.index, 'htype'] = records['htype']
 
-        # Handle the case where there are not enough eligible indices
-        # print("**********not enough slected child selec random**********")
-        selected_index_list = list(people[(people['age'] >= 18) & (people['assigned'] == 0)].index)
-        if len(selected_index_list) == 0:
-            pass
-        else:
-            #print("friends", len(selected_index_list))
-            id_index = random.sample(selected_index_list, number)
-            people.loc[id_index, 'assigned'] = 1
-            return id_index
+
+def _write_household_members_scalar(households, people):
+    for household in households.itertuples(index=False):
+        for member in household.member:
+            people.loc[member, 'hhold'] = household.hid
+            people.loc[member, 'htype'] = household.htype
+
 
 '''
 ====================2, Group Quarter====================

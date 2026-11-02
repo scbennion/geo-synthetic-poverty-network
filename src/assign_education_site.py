@@ -85,16 +85,19 @@ def __assign_education_site__(tract, people, school, daycare, tract_crs=GEOGRAPH
 
     buffers = tract_buffers(tract.geometry, tract_crs, school.projected_crs)
     school_candidates, daycare_candidates = {}, {}
+    school_distances, daycare_distances = {}, {}
 
     # Assign School
     school_kids_index = people[(people['age'] >= 5) & (people['age'] <= 17)].index
     for idx in school_kids_index:
-        people.at[idx, "wp"] = __assign_eduID__(idx, tract, people, school, buffers, school_candidates)
+        people.at[idx, "wp"] = __assign_eduID__(
+            idx, tract, people, school, buffers, school_candidates, school_distances)
 
     # Assign Daycare
     daycare_kids_index = people[(people['age'] <= 4)].index
     for idx in daycare_kids_index:
-        people.at[idx, "wp"] = __assign_eduID__(idx, tract, people, daycare, buffers, daycare_candidates)
+        people.at[idx, "wp"] = __assign_eduID__(
+            idx, tract, people, daycare, buffers, daycare_candidates, daycare_distances)
 
 
 def _sites_in(edu, buff, candidates):
@@ -102,7 +105,7 @@ def _sites_in(edu, buff, candidates):
     return candidates[geom.intersects(buff).to_numpy()]
 
 
-def __assign_eduID__(data, tract, people, edu, buffers, candidate_cache=None):
+def __assign_eduID__(data, tract, people, edu, buffers, candidate_cache=None, distance_cache=None):
     '''
 
     :param data: kids info
@@ -111,6 +114,7 @@ def __assign_eduID__(data, tract, people, edu, buffers, candidate_cache=None):
     :param edu: EducationSites for daycare or school
     :param buffers: (near, far) tract buffers in the projected CRS
     :param candidate_cache: optional candidate lists shared only within this tract
+    :param distance_cache: optional distance rankings shared only within this tract
     :return: daycare or school id
     '''
     edu_df = edu.sites
@@ -135,25 +139,32 @@ def __assign_eduID__(data, tract, people, edu, buffers, candidate_cache=None):
     else:
         edu_site_in_buffer = candidate_cache[key]
 
-    return __find_edu_ID__(kid_x, kid_y, edu_site_in_buffer, edu, tract.name, age)
+    return __find_edu_ID__(kid_x, kid_y, edu_site_in_buffer, edu, tract.name, age,
+                           distance_cache)
 
 
-def __find_edu_ID__(kx, ky, edu_site_in_buffer, edu, tract_name=None, age=None):
+def _rank_education_sites(kx, ky, sites):
+    """Retain the existing distance calculation and sort order, including ties."""
+    distances = [new_distance(kx, ky, sx, sy)
+                 for sx, sy in zip(sites['LATITUDE'], sites['LONGITUDE'])]
+    return pd.DataFrame({'eduID': sites.index, 'Dist': distances}).sort_values(by='Dist').eduID
+
+
+def __find_edu_ID__(kx, ky, edu_site_in_buffer, edu, tract_name=None, age=None,
+                    distance_cache=None):
     if len(edu_site_in_buffer) == 0:
         raise ValueError(f'no education site within {FAR_BUFFER_M} m of tract {tract_name} for age {age}')
 
-    sx = edu_site_in_buffer.loc[:, 'LATITUDE'].tolist()
-    sy = edu_site_in_buffer.loc[:, 'LONGITUDE'].tolist()
+    cache_key = (kx, ky, tuple(edu_site_in_buffer.index)) if distance_cache is not None else None
+    if distance_cache is not None and cache_key in distance_cache:
+        ranked = distance_cache[cache_key]
+    else:
+        ranked = _rank_education_sites(kx, ky, edu_site_in_buffer)
+        if distance_cache is not None:
+            distance_cache[cache_key] = ranked
 
-    dist = []  # distance list
-    for j in range(len(edu_site_in_buffer)):
-        d = new_distance(kx, ky, sx[j], sy[j])
-        dist.append(d)
-
-    edu_id = edu_site_in_buffer.index
-    df_edu_in = pd.DataFrame({'eduID': edu_id, 'Dist': dist}).sort_values(by='Dist')
-
-    sch_AgeDistAccept = [s for s in df_edu_in.eduID if edu.has_room(s)]
+    # Capacity changes after every child; only the distance ranking is cached.
+    sch_AgeDistAccept = [s for s in ranked if edu.has_room(s)]
 
     if sch_AgeDistAccept:
         chosen = sch_AgeDistAccept[0]

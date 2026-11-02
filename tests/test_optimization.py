@@ -1,5 +1,6 @@
 """Preserve original assignments and geometry rules while avoiding repeated work."""
 from types import SimpleNamespace
+import random
 
 import geopandas as gpd
 import numpy as np
@@ -9,6 +10,79 @@ from shapely.geometry import Point, box
 
 from src.assign_household import __assign_left_pop_hhold__, _left_household_choices
 from src.tools import check_urban, classify_urban
+from src.assign_household import (
+    __htype_find_members__, __get_kids_or_friend__, _MemberPool,
+    _write_household_members, _write_household_members_scalar,
+)
+
+
+@pytest.mark.parametrize('kind, expected', [
+    (0, ['p34', 'p119']), (1, ['p34', 'p119', ['p101', 'p8']]),
+    (2, ['p34', 'p119']), (3, ['p34', 'p119', ['p101', 'p8']]),
+    (4, ['p58']), (5, ['p85']), (6, ['p32', ['p0']]),
+    (7, ['p148']), (8, ['p175']), (9, ['p122', ['p0']]),
+    (10, ['p46', ['p32']]),
+])
+def test_member_selection_matches_captured_assignments(kind, expected):
+    people = pd.DataFrame({'age': list(range(90)) * 2, 'gender': ['m'] * 90 + ['f'] * 90,
+                           'assigned': 0}, index=[f'p{i}' for i in range(180)])
+    state = random.getstate()
+    try:
+        random.seed(42)
+        actual = __htype_find_members__(kind, people, np.random.default_rng(42))
+    finally:
+        random.setstate(state)
+    assert actual == expected
+    assigned = [person for group in expected for person in (group if isinstance(group, list) else [group])]
+    assert set(people.index[people.assigned == 1]) == set(assigned)
+
+
+def test_pool_preserves_order_and_excludes_assigned_people():
+    people = pd.DataFrame({'age': [64.5, 65, 18, 30], 'gender': ['m', 'm', 'f', 'm'],
+                           'assigned': [0, 0, 0, 1]}, index=['z', 'b', 'a', 'x'])
+    pool = _MemberPool(people)
+    assert pool.available(18, 65, 'm', upper_exclusive=True).tolist() == ['z']
+    assert pool.available(18).tolist() == ['z', 'b', 'a']
+    pool.assign(['z', 'a'])
+    assert pool.available(18).tolist() == ['b']
+    pool.flush()
+    assert people.assigned.tolist() == [1, 0, 1, 1]
+
+
+def test_integer_zero_index_retains_legacy_selection_behavior():
+    people = pd.DataFrame({'age': [30], 'gender': ['m'], 'assigned': [0]})
+    assert __htype_find_members__(4, people) == []
+    assert people.assigned.tolist() == [0]
+
+
+def test_unavailable_partner_preserves_partial_assignment():
+    people = pd.DataFrame({'age': [24], 'gender': ['m'], 'assigned': [0]}, index=['head'])
+    with pytest.raises(IndexError):
+        __htype_find_members__(0, people)
+    assert people.loc['head', 'assigned'] == 1
+
+
+def test_children_fallback_preserves_empty_and_insufficient_adults():
+    people = pd.DataFrame({'age': [40], 'gender': ['m'], 'assigned': [0]}, index=['adult'])
+    with pytest.raises(ValueError):
+        __get_kids_or_friend__(10, 0, people, 2)
+    people['assigned'] = 1
+    assert __get_kids_or_friend__(10, 0, people, 1) is None
+
+
+@pytest.mark.parametrize('members', [
+    [['a', ['b', 'c']], ['a']],  # last household wins for a repeated person
+    [[['a', 'b']], [['c']]],    # nested group-quarters lists
+    [['a', None], ['b']],      # retain the legacy missing-member behavior
+    [[], []],
+])
+def test_grouped_writeback_matches_scalar(members):
+    households = pd.DataFrame({'hid': ['h0', 'h1'], 'htype': [1, 11], 'member': members})
+    people = pd.DataFrame({'age': [10, 20, 30], 'assigned': [1, 1, 1]}, index=['a', 'b', 'c'])
+    expected = people.copy()
+    _write_household_members_scalar(households, expected)
+    _write_household_members(households, people)
+    pd.testing.assert_frame_equal(people, expected)
 
 
 @pytest.mark.parametrize('seed, expected, next_draws', [
