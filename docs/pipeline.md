@@ -183,12 +183,21 @@ NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=<your password>
 ```
 
+These settings tell `neo4j-cli` where to connect and how to log in; use your instance's URI
+and the password you chose when creating it. Each `query --env` command below reads this
+file. Keeping it outside the repo avoids accidentally committing your password; the file
+stores it in plain text, so restrict access with `chmod 600 ~/.config/gspn/neo4j.env`.
+The bulk importer writes local database files directly and does not use these credentials.
+The file is only a convenience for the CLI: if you run the setup Cypher in Desktop's
+connected query interface instead, you can skip it.
+
 After that, start and stop the instance from Desktop. If Desktop shows the instance as stopped
 while port 7687 is still busy, an earlier start left a server running outside Desktop. Stop
 that process (`lsof -nP -iTCP:7687` shows it) and start the instance from Desktop again.
 
 ### Import a run
 
+Your instance is the server; the steps below add a database inside it for this run.
 Each run gets its own database. Neo4j database names can't contain underscores, so run
 `ut_c035` becomes database `ut-c035`.
 
