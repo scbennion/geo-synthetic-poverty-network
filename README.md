@@ -6,6 +6,7 @@ A **synthetic population** consists of artificial people assembled to match sele
 
 - **Original study:** [Scientific Data article](https://www.nature.com/articles/s41597-024-03970-1).
 - **Published outputs:** [OSF datasets](https://osf.io/fpnc2/). The original repository reports 85 GB uncompressed nationally, distributed by state; check release documentation before downloading.
+- **Download guide:** [State-download file formats](docs/state-download-format.md), including CSV columns, shared IDs, and a proposed Utah County pilot.
 - **Fork scope:** document the existing implementation and its assumptions. Research extensions belong in a separate fork.
 - **Pipeline fixes:** the `task2-pipeline-fixes` branch fixes plumbing so the pipeline runs end to end for one state (Utah pilot): packaging, `--state`/`--counties` options, one seed, file handoffs, and several input-preparation bugs. Modelling rules are unchanged. Every behavioural difference from Jiang et al. (2024) is listed in [`CHANGELOG_vs_jiang2024.md`](CHANGELOG_vs_jiang2024.md), and the open decisions and known gaps are in [`docs/open-decisions.md`](docs/open-decisions.md). A run can be loaded into Neo4j as a graph of people, households, places and contacts; see [`docs/knowledge-graph.md`](docs/knowledge-graph.md).
 
