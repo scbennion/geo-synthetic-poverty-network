@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def __assign_workplaces__(tract, people, od, us_tract_id_work):
+def __assign_workplaces__(tract, people, od, us_tract_id_work, rng=None):
     """
     Assign workplaces to individuals based on their home census tract and provided OD matrix and establishment size distribution.
 
@@ -53,25 +53,27 @@ def __assign_workplaces__(tract, people, od, us_tract_id_work):
         # destination_tract = np.repeat(tract_with_number_jobs.index.values, tract_with_number_jobs.values)).sample(total_employed).tolist()
         # Randomly select destination tracts based on the total number of employed individuals
         destination_tract = pd.Series(
-            np.repeat(tract_with_number_jobs.index.values, tract_with_number_jobs.values)).sample(total_employed)
+            np.repeat(tract_with_number_jobs.index.values, tract_with_number_jobs.values)).sample(total_employed, random_state=rng)
 
     else:
         # Select all employed individuals
         # employed = people[people.age >= 18].index
-        employed = people[people.age >= 18].sample(total_workplaces).index
+        employed = people[people.age >= 18].sample(total_workplaces, random_state=rng).index
         # Repeat destination tracts based on the total number of workplaces needed
         destination_tract = pd.Series(np.repeat(tract_with_number_jobs.index.values, tract_with_number_jobs.values))
 
     # print(type(destination_tract))
     # Assign workplace tracts to employed individuals
-    people.loc[employed, "wp"] = destination_tract.apply(lambda x: generate_workplace_id(x, us_tract_id_work)).values
+    people.loc[employed, "wp"] = destination_tract.apply(lambda x: generate_workplace_id(x, us_tract_id_work, rng)).values
 
 
 #
-def generate_workplace_id(tract_id, us_tract_id_work):
+def generate_workplace_id(tract_id, us_tract_id_work, rng=None):
     """
     Generate a workplace ID based on the destination tract and establishment size distribution.
+    rng: numpy Generator; None falls back to the global np.random state.
     """
+    rng = np.random if rng is None else rng
     if tract_id in us_tract_id_work.index:
         wp_cnt = us_tract_id_work.loc[tract_id, "WP_CNT"]
         wp_proba = us_tract_id_work.loc[tract_id, "WP_PROBA"]
@@ -82,7 +84,7 @@ def generate_workplace_id(tract_id, us_tract_id_work):
             if np.sum(wp_proba) != 1:
                 wp_proba = wp_proba / np.sum(wp_proba)
 
-            workplace_id = f"{tract_id}w{np.random.choice(wp_cnt, p=wp_proba)}"
+            workplace_id = f"{tract_id}w{rng.choice(wp_cnt, p=wp_proba)}"
         else:
             # Handle zero or negative workplace count
             workplace_id = f"{tract_id}wNone"

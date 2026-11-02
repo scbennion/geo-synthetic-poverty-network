@@ -9,27 +9,42 @@ from loguru import logger
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from math import sqrt
 
+from src.cli import in_counties
+
 
 #Load data
-def load_census_data(census_path, error_census_path, state_abbreviation):
+def read_error_tracts(error_census_path, state_abbreviation=''):
+    """Tract GEOIDs (as strings) listed in a synthesis ``<run>_error_log.csv``; [] if there is no log."""
+    if not os.path.exists(error_census_path):
+        logger.warning(f"Error log file not found: {error_census_path}")
+        return []
+    # GEOIDs are read as text so they match the census GEOID column (and keep leading zeros)
+    error_census_df = pd.read_csv(error_census_path, dtype=str)
+    column = 'tract' if 'tract' in error_census_df.columns else 'Tract_Name'
+    logger.info(f"Loaded Error Tracts log for {state_abbreviation}")
+    return list(error_census_df[column]) if not error_census_df.empty else []
+
+
+def read_run_census(census_path, state_code=None, counties=None):
+    """State census tract file, restricted to ``counties`` (3-digit FIPS list) when given."""
+    census_gdf = gpd.read_file(census_path)
+    census_gdf['GEOID'] = census_gdf['GEOID'].astype(str)
+    if counties is not None:
+        census_gdf = census_gdf[in_counties(census_gdf['GEOID'], state_code, counties)]
+    return census_gdf
+
+
+def load_census_data(census_path, error_census_path, state_abbreviation, state_code=None, counties=None):
     '''
     :param census_path:
     :param error_census_path:
+    :param state_code, counties: restrict to these counties of the state (default: all tracts in the file)
     :return: two gdf, all, good
     '''
-    if os.path.exists(error_census_path):
-        error_census_df = pd.read_csv(error_census_path)
-        if 'tract' not in error_census_df.columns:
-            error_tract_id = list(error_census_df['Tract_Name']) if not error_census_df.empty else []
-        else:
-            error_tract_id = list(error_census_df['tract']) if not error_census_df.empty else []
-            logger.info(f"Loaded Error Tracts log for {state_abbreviation}")
-    else:
-        error_tract_id = []
-        logger.warning(f"Error log file not found: {error_census_path}")
+    error_tract_id = read_error_tracts(error_census_path, state_abbreviation)
 
     if os.path.exists(census_path):
-        census_gdf = gpd.read_file(census_path)
+        census_gdf = read_run_census(census_path, state_code, counties)
         logger.info(f"Loaded census data - Count before removing errors: {len(census_gdf)}")
 
         good_census_gdf = census_gdf[~census_gdf['GEOID'].isin(error_tract_id)]

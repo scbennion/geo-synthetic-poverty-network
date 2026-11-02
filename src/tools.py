@@ -103,13 +103,15 @@ def number_of_wp(data, od, cbp):
         return 0
 
 
-def wp_proba(x):
+def wp_proba(x, rng=None):
     """
     probability of an employee working in that workplace is lognormal:
     http://www.haas.berkeley.edu/faculty/pdf/wallace_dynamics.pdf
+    rng: numpy Generator; None uses a fresh unseeded np.random.default_rng()
     """
     if x == 0: return np.zeros(0)
-    b = np.random.lognormal(mean=2,size=x).reshape(-1, 1)
+    rng = np.random.default_rng() if rng is None else rng
+    b = rng.lognormal(mean=2,size=x).reshape(-1, 1)
     return np.sort(normalize(b,norm='l1',axis=0).ravel())
 
 
@@ -459,6 +461,22 @@ def check_urban(data, boundary):
     :return: True if in the urban area, else False.
     '''
     return True in data.geometry.intersects(boundary.geometry).unique()
+
+
+def classify_urban(people, boundary):
+    """Check each distinct home once; touching an urban boundary counts as urban."""
+    spatial_index = boundary.sindex
+    homes = {}
+    flags = []
+    for geometry in people.geometry:
+        if geometry is None:
+            # Preserve the existing error recorded for a missing home location.
+            raise AttributeError("'NoneType' object has no attribute 'intersects'")
+        key = geometry.wkb
+        if key not in homes:
+            homes[key] = len(spatial_index.query(geometry, predicate='intersects')) > 0
+        flags.append(homes[key])
+    return pd.Series(flags, index=people.index, dtype=bool)
 
 
 

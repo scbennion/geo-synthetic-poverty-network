@@ -8,6 +8,6 @@ HANDOFF_*.md
 ut-parts
 modules.xml
 workspace.xml
+geo-synthetic-poverty-network.iml
 vcs.xml
 .env.neo4j
-workspace.xml

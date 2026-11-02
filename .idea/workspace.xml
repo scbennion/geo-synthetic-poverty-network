@@ -5,7 +5,68 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6537a2b2-1e60-49d5-8a3f-fcb4b4e7b39d" name="Changes" comment="create venv">
+      <change afterPath="$PROJECT_DIR$/CHANGELOG_vs_jiang2024.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-census/download_census_inputs.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/build_tract_workplace_json.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-edu/build_edu_sites.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-road/clean_roads.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/code/4-knowledge-graph/constraints.cypher" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/code/4-knowledge-graph/export_neo4j_csv.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/code/4-knowledge-graph/tract_summary.cypher" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/agents.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/knowledge-graph.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/open-decisions.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/optimization.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/pipeline.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/census_prep.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/clean_roads.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/cli.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/population_io.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/seeding.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/timing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_census_prep.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_cli_dry_run.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_commute_prep.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_edu_sites.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_education_capacity.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_file_handoff.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_imports.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_neo4j_export.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_optimization.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_reproducibility.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_roads.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_timing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_workplace_count.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/geo-synthetic-poverty-network.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/geo-synthetic-poverty-network.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-census/process_census_shp.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-census/process_census_shp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/add_tract_workplaces.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/add_tract_workplaces.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_cbp.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_cbp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_lodes8.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_lodes8.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-road/clean_raod_with_grass.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-road/download_process_roads.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-road/download_process_roads.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/1-population-synthesis/run-synthesis-by-state.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/1-population-synthesis/run-synthesis-by-state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/2-social-networks/create_edu_hhold_get_work_pop.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/2-social-networks/create_edu_hhold_get_work_pop.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/2-social-networks/create_work_networks.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/2-social-networks/create_work_networks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_external_cosine.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_external_cosine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_external_sc_bg.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_external_sc_bg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_hhold.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_hhold.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_population.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_population.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_tract_avg_hhold.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_tract_avg_hhold.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/after_validation_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/after_validation_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assign_education_site.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/assign_education_site.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assign_household.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/assign_household.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assign_workplace.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/assign_workplace.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/create_social_networks.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/create_social_networks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/create_space.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/create_space.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ctreate_individuals.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ctreate_individuals.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/preprocess_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/preprocess_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -15,85 +76,85 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "scbennion"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;scbennion&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/scbennion/geo-synthetic-poverty-network",
-    "accountId": "c054bb08-3a2a-404f-8ccb-77c37e669d56"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/scbennion/geo-synthetic-poverty-network&quot;,
+    &quot;accountId&quot;: &quot;c054bb08-3a2a-404f-8ccb-77c37e669d56&quot;
   }
-}]]></component>
+}</component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0000001500252387" />
-      <entry key="S10" value="1.0032349174138533" />
-      <entry key="S30" value="3.721191054451126" />
-      <entry key="S60" value="16.007284233189672" />
-      <entry key="M2" value="38.52578635328798" />
-      <entry key="M5" value="103.91827565887203" />
-      <entry key="M10" value="234.8569548592128" />
-      <entry key="M15" value="338.86093617136925" />
-      <entry key="M30" value="511.224616181208" />
-      <entry key="H1" value="637.4444593988432" />
-      <entry key="H2" value="714.2376216874965" />
-      <entry key="H4" value="756.6497472263194" />
-      <entry key="D1" value="794.2286876678787" />
-      <entry key="W1" value="800.8844774807793" />
+      <entry key="MS100" value="1.47168972248064E-14" />
+      <entry key="MS500" value="0.006556513678066203" />
+      <entry key="S2" value="1.205565362094968" />
+      <entry key="S5" value="3.4595043300963755" />
+      <entry key="S10" value="4.983370075257677" />
+      <entry key="S30" value="8.886460996419528" />
+      <entry key="S60" value="17.706926316400097" />
+      <entry key="M2" value="38.314765096375574" />
+      <entry key="M5" value="102.67477442976741" />
+      <entry key="M10" value="231.03735396069808" />
+      <entry key="M15" value="335.9581683841728" />
+      <entry key="M30" value="514.1032738642651" />
+      <entry key="H1" value="647.1026546796684" />
+      <entry key="H2" value="728.8691324053275" />
+      <entry key="H4" value="774.2723420631403" />
+      <entry key="D1" value="814.6372135286417" />
+      <entry key="W1" value="821.7992575555802" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="2.771102298407933E-84" />
-      <entry key="S5" value="3.7762524793388105E-34" />
-      <entry key="S10" value="1.943258350838153E-17" />
-      <entry key="S30" value="2.6996509144175066E-6" />
-      <entry key="S60" value="0.0017452589315410003" />
-      <entry key="M2" value="0.05076867355972151" />
-      <entry key="M5" value="0.4375248617883901" />
-      <entry key="M10" value="0.9268735808494839" />
-      <entry key="M15" value="1.1952411092032464" />
-      <entry key="M30" value="1.5445079175626215" />
-      <entry key="H1" value="1.7571009178465455" />
-      <entry key="H2" value="1.8744980685093995" />
-      <entry key="H4" value="1.9362008538461766" />
-      <entry key="D1" value="1.9892181491114622" />
-      <entry key="W1" value="1.9984560540818777" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0000000000035916" />
+      <entry key="S5" value="1.0000264311734044" />
+      <entry key="S10" value="1.005141125694283" />
+      <entry key="S30" value="1.1725918283860728" />
+      <entry key="S60" value="1.416048518430428" />
+      <entry key="M2" value="1.6744925270662052" />
+      <entry key="M5" value="2.1931218974516273" />
+      <entry key="M10" value="2.7499072160540567" />
+      <entry key="M15" value="3.0571235226228852" />
+      <entry key="M30" value="3.462239723875399" />
+      <entry key="H1" value="3.711917946507066" />
+      <entry key="H2" value="3.850784176241784" />
+      <entry key="H4" value="3.9240483236088024" />
+      <entry key="D1" value="3.9871503419892944" />
+      <entry key="W1" value="3.998159597262661" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.15389305166811454" />
-      <entry key="MS500" value="0.6877709090698718" />
-      <entry key="S2" value="0.9106698335919784" />
-      <entry key="S5" value="0.9632620439098163" />
-      <entry key="S10" value="0.9846924863184451" />
-      <entry key="S30" value="3.714541564467326" />
-      <entry key="S60" value="16.00456724905211" />
-      <entry key="M2" value="38.57198427433868" />
-      <entry key="M5" value="104.34893651080027" />
-      <entry key="M10" value="235.77678938779206" />
-      <entry key="M15" value="340.0499475343977" />
-      <entry key="M30" value="512.7648783475114" />
-      <entry key="H1" value="639.1990549255679" />
-      <entry key="H2" value="716.1107549839633" />
-      <entry key="H4" value="758.5852353014096" />
-      <entry key="D1" value="796.2177825809893" />
-      <entry key="W1" value="802.8829158180264" />
+      <entry key="MS100" value="8.222861188296602E-5" />
+      <entry key="MS500" value="0.1588383904301567" />
+      <entry key="S2" value="1.824563398276454" />
+      <entry key="S5" value="4.281377043849148" />
+      <entry key="S10" value="5.893162207068566" />
+      <entry key="S30" value="10.015797839879285" />
+      <entry key="S60" value="19.093091719331113" />
+      <entry key="M2" value="39.96904540101364" />
+      <entry key="M5" value="104.85419237875232" />
+      <entry key="M10" value="233.7766277984863" />
+      <entry key="M15" value="339.00656580296993" />
+      <entry key="M30" value="517.5599272909059" />
+      <entry key="H1" value="650.811360225825" />
+      <entry key="H2" value="732.7181866334483" />
+      <entry key="H4" value="778.1954917246753" />
+      <entry key="D1" value="818.6242091607163" />
+      <entry key="W1" value="825.7973949271599" />
     </decayedShown>
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 6,
-  "fromUser": false
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3Kf17rxfAb24cQiTCx4qDUYgwZU" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -108,7 +169,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Merging main",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "/Users/sbennion/Desktop/Work/geo-synthetic-poverty-network",
     "node.js.detected.package.eslint": "true",

@@ -4,6 +4,8 @@
 # external requirements
 # mesa-geo==0.4.0
 geopandas
+shapely>=2.0
+scipy
 numpy
 pandas
 matplotlib
