@@ -26,8 +26,7 @@ TRACTS = ['49035000100', '49035000200', '49035000300']
 X0, Y0, SIZE = -111.90, 40.70, 0.01  # tract i is the box [X0 + i*SIZE, X0 + (i+1)*SIZE] x [Y0, Y0 + SIZE]
 RUN = 'ut_c035'
 
-# 13 columns must precede DP1_0026C: __create_individuals__ reads the age-sex
-# groups positionally as tract[13:50] (minus DP1_0049C).
+# Retain the original prepared-input layout for the end-to-end regression fixture.
 LEAD_COLS = ['DP1_0001C', 'DP1_0025C', 'WP_CNT'] + [f'DP1_{i:04d}C' for i in range(2, 12)]
 MALE_AGE = [f'DP1_{i:04d}C' for i in range(26, 44)]    # 18 five-year groups
 FEMALE_AGE = [f'DP1_{i:04d}C' for i in range(50, 68)]  # 18 five-year groups
@@ -109,7 +108,7 @@ def _run(script, data_dir, *args):
                PYTHONPATH=os.pathsep.join([str(ROOT), os.environ.get('PYTHONPATH', '')]))
     env.pop('OGR_CURRENT_DATE', None)  # the synthesis driver must pin GeoPackage timestamps itself
     result = subprocess.run([sys.executable, str(script), '--state', 'ut', '--counties', '035', *args],
-                            cwd=script.parent, env=env, capture_output=True, text=True)
+                            cwd=script.parent, env=env, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-3000:]
 
 
@@ -135,11 +134,8 @@ def _pipeline(data_dir, seed):
     assert {'load roads', 'synthesis loop', 'collect population', 'write population GeoPackage',
             'state total'} <= set(timing.stage)
 
-    # the network driver reads a pickle the synthesis driver does not yet write (Agent B's hand-off fix)
     pop = gpd.read_file(state_dir / f'{RUN}_population.gpkg')
     assert set(pop['id'].str[:11]) == set(TRACTS)
-    pop.to_pickle(state_dir / f'{RUN}_population.pickle')
-    (results / '1-us').mkdir(exist_ok=True)
     _run(EDU_HHOLD, data_dir, '--seed', str(seed))
     _run(WORK, data_dir, '--seed', str(seed))
 

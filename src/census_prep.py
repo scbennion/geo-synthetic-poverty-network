@@ -20,10 +20,9 @@ Order of the census preprocessing steps (see code/0-preprocess/prepare-census/):
    ``INTERIM_DATA_DIR/cbp/workplace_cbp.csv`` (``process_cbp.py``) and
    ``INTERIM_DATA_DIR/od/ut-tract-od-2020.csv`` (``process_lodes8.py``).
 
-Column order matters: ``__create_individuals__`` reads the 36 age/sex counts as
-``tract[13:50]`` (minus ``DP1_0049C``) of a row whose index is GEOID and whose last
-field is geometry, so the file must hold exactly the 11 TIGER attribute columns
-(without GEOID) then ``DP1_0001C``, ``DP1_0025C``, ``DP1_0026C``...
+The individual generator selects its 36 age/sex counts by name. Column order
+still matters for validation helpers that use ``iloc[:, 14:51]`` on frames with
+GEOID as a column, so preserve the prepared file's TIGER-then-DP1 layout.
 """
 import os
 

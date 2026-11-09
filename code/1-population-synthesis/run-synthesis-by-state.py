@@ -1,38 +1,27 @@
 import os
-import re
 
-import wget
 import pandas as pd
 import geopandas as gpd
 
 from tqdm import tqdm
-#from tqdm.notebook import tqdm
 # Register tqdm with pandas
 tqdm.pandas()
 import argparse
-import sys
-import time
 
-#general packages
 from time import perf_counter
-import requests
-import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 import warnings
-
 
 
 # Suppress only the InsecureRequestWarning
 warnings.simplefilter('ignore', InsecureRequestWarning)
 
-from bs4 import BeautifulSoup
 from loguru import logger
-from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
+from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_dict
 from src.cli import add_geography_args, resolve_geography, in_counties, run_name
 from src.seeding import add_seed_arg, seed_everything
 from src.timing import RunTiming
-#Synthesize Functions
-from src.ctreate_individuals import __create_individuals__
+from src.create_individuals import create_individuals
 from src.assign_household import __assign_household_order__
 from src.create_space import __create_home_location__
 
@@ -40,13 +29,10 @@ from src.assign_workplace import __assign_workplaces__
 from src.create_space import __create_work_location__
 from src.assign_education_site import __assign_education_site__, EducationSites
 
-from src.tools import classify_urban
-from src.tools import __verfication__
-from src.tools import __collect_results__
+from src.tools import classify_urban, verify_population, collect_results
 
 
 def load_tract_id_work():
-    #tract_id_work = pd.read_csv('../data/processed-data/us_tract_number_work.csv')
     tract_id_work = pd.read_json(os.path.join(PROCESSED_DATA_DIR, 'us_tract_number_work.json'), orient='records', lines=True, dtype={'GEOID': str})
     tract_id_work['GEOID'] = tract_id_work['GEOID'].astype(str)
     tract_id_work = tract_id_work.sort_values(by = 'GEOID').set_index('GEOID')
@@ -87,7 +73,7 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
     try:
         # Step 1: Create demographic information
         # 1.1 Create Individuals
-        people = measured('individual creation', __create_individuals__, tract, rng)
+        people = measured('individual creation', create_individuals, tract, rng)
         # 1.2 Group individual household
         measured('household assignment', __assign_household_order__, tract, people, rng)
         # __assign_household__(tract, people)
@@ -109,7 +95,7 @@ def __synthesize__(tract, od, road, us_tract_id_work, school, daycare, urban,  #
             people['urban'] = classify_urban(people, urban)
 
         # Step 4: Verification
-        ver_df = measured('verification', __verfication__, tract, people)
+        ver_df = measured('verification', verify_population, tract, people)
 
         # Append results to lists
         population_list.append(people)
@@ -255,7 +241,7 @@ if __name__ == '__main__':
 
         population_path = os.path.join(state_results_path, f'{name}_population')
         with timing.measure('collect population'):
-            population_df = __collect_results__(population, "Pop")
+            population_df = collect_results(population, "Pop")
 
         if population_df['id'].isna().any() or population_df['wp'].isna().any():
             logger.info(f"Population data Have nans in 'id': {len(population_df)}")
@@ -285,7 +271,7 @@ if __name__ == '__main__':
 
         workplace_path = os.path.join(state_results_path, f'{name}_workplace')
         with timing.measure('collect workplace'):
-            workplace_df = __collect_results__(workplaces, "Work")
+            workplace_df = collect_results(workplaces, "Work")
         with timing.measure('write workplace GeoPackage'):
             workplace_df.to_file(workplace_path + ".gpkg", driver='GPKG')
         logger.info(f"Total Workplaces Generated for {state_abbreviation}: {len(workplace_df)}")
@@ -293,7 +279,7 @@ if __name__ == '__main__':
 
         ver_path = os.path.join(state_results_path, f'{name}_verification.csv')
         with timing.measure('collect verification'):
-            verification_df = __collect_results__(verification, "Verification")
+            verification_df = collect_results(verification, "Verification")
         with timing.measure('write verification CSV'):
             verification_df.to_csv(ver_path)
         logger.info(f"Saving {state_abbreviation} Verification to: {ver_path}")
@@ -301,7 +287,7 @@ if __name__ == '__main__':
         if len(error_log) > 0:
             error_log_path = os.path.join(state_results_path, f'{name}_error_log.csv')
             with timing.measure('collect error_log'):
-                error_log_df = __collect_results__(error_log, "ErrorLog")
+                error_log_df = collect_results(error_log, "ErrorLog")
             with timing.measure('write error_log CSV'):
                 error_log_df.to_csv(error_log_path)
             logger.info(f"Saving {state_abbreviation} ErrorLog to: {error_log_path}")

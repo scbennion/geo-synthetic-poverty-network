@@ -1,99 +1,74 @@
+"""Generate undirected contacts within households and daytime sites."""
+import csv
+from pathlib import Path
+
 import networkx as nx
 import numpy as np
-import csv
-import os
-from pathlib import Path
 from loguru import logger
 
 
 def wp_kind(wp):
-    '''Site type of each wp id: the first letter after any leading digits ('w' work, 's' school,
-    'd' daycare, 'h' home). Substring checks misfire, e.g. 'wNotFound' contains 'd'.'''
+    """First site letter after leading digits: w=work, s=school, d=daycare, h=home.
+
+    Substring checks misclassify workplace IDs such as ``wNotFound`` as daycare.
+    """
     return wp.astype(str).str.extract(r'^\d*([a-z])', expand=False)
 
 
-def create_edges(x, g, rng=None):
-    if len(x) <= 5:
-        sw = nx.complete_graph(len(x))
+def create_edges(people, graph, rng=None):
+    if len(people) <= 5:
+        contacts = nx.complete_graph(len(people))
     else:
-        sw = nx.newman_watts_strogatz_graph(len(x), 4, 0.3, seed=rng)
-    sw = nx.relabel_nodes(sw, dict(zip(sw.nodes(), x.index.values)))# what's this line for?
-    g.add_edges_from(sw.edges())
+        contacts = nx.newman_watts_strogatz_graph(len(people), 4, 0.3, seed=rng)
+    # The generator numbers nodes from zero; use the actual person IDs in the output.
+    contacts = nx.relabel_nodes(contacts, dict(zip(contacts.nodes(), people.index)))
+    graph.add_edges_from(contacts.edges())
+
 
 def create_network(people, type, seed=None):
-    # seed: int for a reproducible network; each call starts a fresh stream so a
-    # network file depends only on its input population and the seed
+    """Build one contact setting, retaining isolated people and input node order.
+
+    Each call starts a fresh random stream, so cached settings cannot affect the
+    remaining settings. Group order determines which groups receive which draws.
+    """
     rng = None if seed is None else np.random.default_rng(seed)
-    g = nx.Graph()
-    g.add_nodes_from(people.index)
+    graph = nx.Graph()
+    graph.add_nodes_from(people.index)
+    if type in ('School', 'Daycare', 'Work'):
+        group_column = 'wp'
+    elif type == 'Household':
+        group_column = 'hhold'
+    else:
+        return graph
 
-    if type in ["School", "Daycare", "Work"]:
-        grouped = people.groupby('wp', group_keys=False)
-        grouped.apply(lambda x: create_edges(x, g, rng))
+    for _, group in people.groupby(group_column, sort=True):
+        create_edges(group, graph, rng)
+    return graph
 
-    if type == 'Household':
-        grouped = people.groupby('hhold', group_keys=False)
-        grouped.apply(lambda x: create_edges(x, g, rng))
-    return g
 
-def get_neighbors(x, g):
-    return [n for n in g.neighbors(x)]
-
-def to_csv(g, population, output_name):
-    col1 = list(population.index)
-    col2 = population.index.map(lambda x: get_neighbors(x, g))
-    col2 = list(col2)
-    for i in range(len(col2)):
-        col2[i] = [col1[i]] + col2[i]
-    with open(output_name, 'w') as f:
-        writer = csv.writer(f)
-        writer.writerows(col2)
+def to_csv(graph, population, output_name):
+    """Write headerless adjacency rows in population and neighbor insertion order."""
+    rows = [[person, *graph.neighbors(person)] for person in population.index]
+    with open(output_name, 'w') as stream:
+        csv.writer(stream).writerows(rows)
 
 
 def create_networks_types(population, folder_path, state_abbreviation, name=None, seed=None):
-    # name: output file prefix, e.g. 'ut_c035' for a county run; defaults to the state
+    """Write daycare, school, and household networks, leaving existing files intact."""
     name = name or state_abbreviation
-    directory_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks")
+    directory = Path(folder_path) / state_abbreviation / 'social_networks'
+    directory.mkdir(parents=True, exist_ok=True)
 
-    # Check if the directory exists
-    if not os.path.exists(directory_path):
-        # Create the directory if it does not exist
-        os.makedirs(directory_path)
+    for kind, site_letter in (('Daycare', 'd'), ('School', 's'), ('Household', None)):
+        path = directory / f'{name}_{kind.lower()}_network.csv'
+        if path.exists():
+            logger.info(f'{kind} Network already exists')
+            continue
 
-    daycare_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_daycare_network.csv")
-    if not Path(daycare_nx_path).exists():
-        logger.info('Creating Daycare Network')
-        select_pop = population[wp_kind(population.wp) == 'd'].set_index('id').copy()
-        logger.info(f"Daycare population {len(select_pop)}")
-
-        new_network = create_network(select_pop, "Daycare", seed)
-        logger.info(f"the number of edges are: " + str(len(new_network.edges())))
-        to_csv(new_network, select_pop, daycare_nx_path)
-        logger.info(f"Done creating Daycare Network, writing to Daycare Graph")
-    else:
-        logger.info('Daycare Network already exists')
-
-    school_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_school_network.csv")
-    if not Path(school_nx_path).exists():
-        logger.info('Creating School Network')
-        select_pop = population[wp_kind(population.wp) == 's'].set_index('id').copy()
-        logger.info(f"School population {len(select_pop)}")
-
-        new_network = create_network(select_pop, "School", seed)
-        logger.info(f"the number of edges are: " + str(len(new_network.edges())))
-        to_csv(new_network, select_pop, school_nx_path)
-        logger.info(f"Done creating School Network, writing to School Graph")
-    else:
-        logger.info('School Network already exists')
-
-    hhold_nx_path = os.path.join(folder_path, f"{state_abbreviation}/social_networks/{name}_household_network.csv")
-    if not Path(hhold_nx_path).exists():
-        logger.info("Creating Household network...")
-        logger.info(f"Population {len(population)}")
-        new_network = create_network(population.set_index('id'), "Household", seed)
-
-        logger.info("the number of edges are: " + str(len(new_network.edges())))
-        to_csv(new_network, population.set_index('id'), hhold_nx_path)
-        logger.info(f"Done creating Household Network, writing to Household Graph")
-    else:
-        logger.info('Household Network already exists')
+        selected = (population if site_letter is None
+                    else population[wp_kind(population.wp) == site_letter])
+        people = selected.set_index('id').copy()
+        logger.info(f'Creating {kind} Network for {len(people)} people')
+        graph = create_network(people, kind, seed)
+        to_csv(graph, people, path)
+        logger.info(f'Wrote {kind} Network: {graph.number_of_edges()} edges')

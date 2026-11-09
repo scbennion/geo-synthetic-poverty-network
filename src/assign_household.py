@@ -2,50 +2,30 @@ import random
 import pandas as pd
 import numpy as np
 
-'''
-====================Assign Household Main Function====================
-
-'''
 def __assign_household_order__(tract, people, rng=None):
     # rng: numpy Generator for the numpy draws; Python `random` draws use the global seed
-    #print("==========Assign People a Household==========")
-    #print("-Total population", len(people))
-    #print('- Step 1.2 Assign People a Household-')
 
-    # print(hhold_df_id_type)
 
-    #if len(people) is not 0
     # 1.3 use hholdid and hhhold htype to find individuals
     people['assigned'] = 0
-    #print("total pop", len(people))
-    # print(len(people[(people['age'] >= 18) & (people['age'] <= 64) & (people['gender'] == 'm') & (people['assigned'] == 0)]))
 
     if tract.DP1_0132C == 0:  # if there is nor houshold record in the census tract, create groupquarter
         print("---only group quarter---")
         gq_df = __get_group_quarter__(tract, people)
-        #print(gq_df.head())
-        # print("after gp People Left", len(people[people['assigned'] == 0]))
-        # print(gq_df)
         # left people
-        #print(gq_df['hid'][0])
         people['hhold'] = gq_df['hid'][0]
         people['htype'] = 11
         people['assigned'] = 1
-        # return gq_df
     else:
         # 1 get household and its member
         # 1.1 extract amount of each household type
         hhold_df_type = __get_hhold_type__(tract)
-        #print(hhold_df_type)
-        # print(tract.DP1_0132C)
 
         # add a col to indicate household type
         hhold_df_type['htype'] = hhold_df_type.index  # np.repeat(hhold_df_type.index, hhold_df_type)
 
         # 1.2 create hhold df with cols hid, htype using hhold_df_type
-        # hhold_df_id_type = __creat_hhold_id__(tract, hhold_df_type)
         hhold_df = __creat_hhold_id__(tract, hhold_df_type)
-        # print(hhold_df)
 
         # 1.3 find members using hhold type
         pool = _MemberPool(people)
@@ -53,15 +33,12 @@ def __assign_household_order__(tract, people, rng=None):
             hhold_df['member'] = [__htype_find_members__(kind, pool, rng) for kind in hhold_df.htype]
         finally:
             pool.flush()
-        # print(hhold_df)
 
         # 2, group unassigned population based on group quarters
-        #print("People Left before gp", len(people[people['assigned'] == 0]))
         # 2.1 find gp population
         gp_df = __get_group_quarter__(tract, people)
         # 2.1 combine
         hhold_df = pd.concat([hhold_df, gp_df])
-        #print("after gp People Left", len(people[people['assigned'] == 0]))
 
         # 3 , add two cols to people df: 1 is hhold, the other is hhold type
         _write_household_members(hhold_df, people)
@@ -73,63 +50,20 @@ def __assign_household_order__(tract, people, rng=None):
         people[['hhold', 'htype', 'assigned']] = pd.DataFrame(
             [result if result is not None else (np.nan, np.nan, np.nan) for result in results],
             index=people.index, columns=['hhold', 'htype', 'assigned'])
-        #print("after 1 to 4 People Left", len(people[people['assigned'] == 0]))
-
-'''
-====================1, Household ====================
-'''
-'''
- 1.1 Extract the amount of each hhold type
-'''
 
 
 def __get_hhold_type__(tract):
-    # hhold_info = (tract[71:-1]).astype(int) #HOUSEHOLDS BY TYPE
-
-    """
-    Extract the amount of each household type from the census tract data.
-
-    Parameters:
-    - tract: Census tract data containing household type information.
-
-    Returns:
-    - DataFrame: DataFrame with columns 'amount' indicating the amount of each household type.
-     1.1 Extract the amout of each hhold type
-    Extract the amount of each household type from the census tract data.
-
-    Parameters:
-    - tract: Census tract data containing household type information.
-
-    Returns:
-    - DataFrame: DataFrame with columns 'amount' indicating the amount of each household type.
-    #hhold_list = ['DP1_0112C', 'DP1_0113C', 'DP1_0114C', 'DP1_0115C', 'DP1_0116C', 'DP1_0117C', 'DP1_0118C', 'DP1_0119C',
-        #'DP1_0120C', 'DP1_0121C', 'DP1_0122C', 'DP1_0123C', 'DP1_0124C', 'DP1_0125C', 'DP1_0126C', 'DP1_0127C',
-        #'DP1_0128C', 'DP1_0129C', 'DP1_0130C', 'DP1_0131C', 'DP1_0132C', 'DP1_0133C', 'DP1_0134C', 'DP1_0135C',
-        #'DP1_0136C', 'DP1_0137C', 'DP1_0138C', 'DP1_0139C', 'DP1_0140C', 'DP1_0141C', 'DP1_0142C', 'DP1_0143C',
-        #'DP1_0144C', 'DP1_0145C', 'DP1_0146C']
-    #hhold_info = ('DP1_0112C', 'DP1_0113C', 'DP1_0114C', 'DP1_0115C', 'DP1_0116C', 'DP1_0117C', 'DP1_0118C', 'DP1_0119C',
-        #'DP1_0120C', 'DP1_0121C', 'DP1_0122C', 'DP1_0123C', 'DP1_0124C', 'DP1_0125C', 'DP1_0126C', 'DP1_0127C',
-        #'DP1_0128C', 'DP1_0129C', 'DP1_0130C', 'DP1_0131C', 'DP1_0132C', 'DP1_0133C', 'DP1_0134C', 'DP1_0135C',
-        #'DP1_0136C', 'DP1_0137C', 'DP1_0138C', 'DP1_0139C', 'DP1_0140C', 'DP1_0141C', 'DP1_0142C', 'DP1_0143C',
-        #'DP1_0144C', 'DP1_0145C', 'DP1_0146C').astype(int)  #HOUSEHOLDS BY TYPE
-    #print(hhold_info)
-    """
+    """Return tract targets for the eleven regular household categories."""
 
     hhold_type_amount = pd.Series(np.zeros(11), dtype=int)
 
     # 0 married         : DP1_0133C - DP1_0134C
     hhold_type_amount[0] = tract.DP1_0133C - tract.DP1_0134C
-    # print(hhold_type_amount[0] * 2)
-    # hhold_type_amount[0] = 1
-    # print(hhold_type_amount[0])
     # 1 marrie with kids: DP1_0134C
     hhold_type_amount[1] = tract.DP1_0134C
-    # print(hhold_type_amount[1] * 4)
 
-    # print(hhold_type_amount[1])
     # 2 cocahbiting          : DP1_0135C - DP1_0136C
     hhold_type_amount[2] = tract.DP1_0135C - tract.DP1_0136C
-    # print(hhold_type_amount[2])
     # 3 cocahbiting with Kids: DP1_0136C
     hhold_type_amount[3] = tract.DP1_0136C
 
@@ -142,7 +76,6 @@ def __get_hhold_type__(tract):
     hhold_type_amount[6] = tract.DP1_0140C
 
     # 7  female live alone        :DP1_0142C - DP1_0143C
-    # print("in get hhold count", tract.DP1_0142C, tract.DP1_0143C)
     hhold_type_amount[7] = tract.DP1_0142C - tract.DP1_0143C
 
     # 8  female senior live alone :DP1_0143C
@@ -154,13 +87,9 @@ def __get_hhold_type__(tract):
     # 10 non-family group         : (DP1_0137C - DP1_0138C - DP1_0140C) + (DP1_0141C - DP1_0142C - DP1_0144C)
     hhold_type_amount[10] = (tract.DP1_0137C - tract.DP1_0138C - tract.DP1_0140C) + (
                 tract.DP1_0141C - tract.DP1_0142C - tract.DP1_0144C)
-    # hhold_type_amount[10] = non_female + non_male
-    # print(hhold_type_amount[10])
 
     hhold_type_amount = pd.DataFrame({'amount': hhold_type_amount})
 
-    # print(hhold_type_amount)
-    #print("--getting hhold type from census", hhold_type_amount.sum(), "--census", tract.DP1_0132C)
 
     return hhold_type_amount
 
@@ -177,7 +106,6 @@ def __creat_hhold_id__(tract, df_type):
     Returns:
         - DataFrame: DataFrame with columns 'hid' for household IDs and 'htype' for household types.
     """
-    # print(df_type.head())
     hid_list = []
     type_list = []
 
@@ -185,7 +113,6 @@ def __creat_hhold_id__(tract, df_type):
     current_hid = 0
 
     for index, row in df_type.iterrows():
-        # print(row)
         htype = row['htype']
         amount = row['amount']
         for _ in range(amount):
@@ -195,20 +122,12 @@ def __creat_hhold_id__(tract, df_type):
 
     # Create DataFrame from the lists
     df = pd.DataFrame({'hid': hid_list, 'htype': type_list})
-    # custom_order = [4, 5, 7, 8, 0, 2, 1, 3, 6, 9, 10]
 
-    # custom_order = [7, 8, 4, 5, 0, 2, 1, 3, 6, 9, 10]
-    #custom_order = [8, 0, 1, 2, 3, 4, 5, 7, 6, 9, 10]
-    #custom_order = [8, 10, 0, 1, 2, 3, 4, 5, 7, 6, ]
     custom_order = [4, 5, 7, 8, 0, 1, 2, 3, 9, 10, 6]
     df['htype'] = pd.Categorical(df['htype'], categories=custom_order, ordered=True)
     df_type = df.sort_values(by='htype').reset_index(drop=True)
     df_type['htype'] = df_type['htype'].astype(int)
 
-    # print(df_type.dtypes)
-    # print("====in create hhold id type 7", len(df_type[df_type.htype == 7]))
-    # print("====in create hhold id type 8", len(df_type[df_type.htype == 8]))
-    # print("====in create hhold ordered df", len(df_type))
 
     return df_type
 
@@ -217,7 +136,6 @@ def __find_members__(hhold, people, rng=None):
     '''
     1.3 use hholdid and hhhold type to find individuals
     '''
-    # print(hhold)
     member = __htype_find_members__(hhold['htype'], people, rng)
 
     return member
@@ -374,15 +292,6 @@ def _write_household_members_scalar(households, people):
             people.loc[member, 'htype'] = household.htype
 
 
-'''
-====================2, Group Quarter====================
-'''
-'''
-    2 use group quarter info to assign population to group quarter
-    2.1 get the population under  each group quarter type then find individuals 
-'''
-
-
 def __get_group_quarter__(tract, people):
     '''
     2 use group quarter info to assign population to group quarter
@@ -390,17 +299,11 @@ def __get_group_quarter__(tract, people):
     '''
     # tract.DP1_0127C
     members = []
-    # print('---in get group quarter---')
-    # gp_id = tract.name + 'h' + str(tract.DP1_0132C)
-    # print(gp_id)
-    #print(tract.DP1_0125C, "in gp")
     # Institutionalized population:!!Male
     #
     if tract.DP1_0127C == 0:
         pass
     else:
-        # print('1Institutionalized population:!!Male:', tract.DP1_0127C)
-        # members = __get_group_quarter_ids__('male', people, 64, 18, tract.DP1_0127C)
         members.append(__get_group_quarter_ids__('male', people, 64, 18, tract.DP1_0127C))
     # Institutionalized population:!!Female
 
@@ -408,23 +311,16 @@ def __get_group_quarter__(tract, people):
     if tract.DP1_0128C == 0:
         pass
     else:
-        # print('2Institutionalized population:!!Female:', tract.DP1_0128C)
-        # members = __get_group_quarter_ids__('female', people, 64, 18, tract.DP1_0128C)
         members.append(__get_group_quarter_ids__('female', people, 64, 18, tract.DP1_0128C))
-    # print('3Non-Institutionalized population:!!Male:', tract.DP1_0130C)
 
     if tract.DP1_0130C == 0:
         pass
     else:
-        # print('3Non-Institutionalized population:!!Female:', tract.DP1_0130C)
-        # members = __get_group_quarter_ids__('male', people, 100, 65, tract.DP1_0130C)
         members.append(__get_group_quarter_ids__('male', people, 100, 18, tract.DP1_0130C))
 
     if tract.DP1_0131C == 0:
         pass
     else:
-        # print('4Non-Institutionalized population:!!Female:', tract.DP1_0131C)
-        # members = __get_group_quarter_ids__('female', people, 100, 65, tract.DP1_0131C)
         members.append(__get_group_quarter_ids__('female', people, 100, 18, tract.DP1_0131C))
 
     gp_data = {
@@ -432,7 +328,6 @@ def __get_group_quarter__(tract, people):
         'htype': 11,
         'member': members
     }
-    # print(pd.DataFrame(gp_data))
     return pd.DataFrame(gp_data)
 
 
@@ -441,10 +336,6 @@ def __get_group_quarter_ids__(x, people, upper_age, lower_age, number):
     2.2 use census to get group quarter member ids
     '''
     member_list = []
-    #print(len(people[people['assigned'] == 0]))
-    #print("get gp age max",people.age.max())
-    #print("get gp age min",people.age.min())
-    # if len(member_list) < x.
     if x == 'male':
         selected_index_list = people[(people['age'] <= upper_age) &
                                           (people['age'] >= lower_age) &
@@ -454,22 +345,18 @@ def __get_group_quarter_ids__(x, people, upper_age, lower_age, number):
         if len(selected_index_list) >= number:
             id_index = random.sample(list(selected_index_list), number)
             people.loc[id_index, 'assigned'] = 1
-            # people.loc[id_index, 'htype'] = 11
             member_list.append(id_index)
         else:
-            #print('Not enough people')
             # Handle the case where there are not enough eligible indices
             selected_index_list = people[(people['age'] >= 0) & (people['gender'] == 'm') & (people['assigned'] == 0)].index
             if len(selected_index_list) >= number:
                 id_index = random.sample(list(selected_index_list), number)
                 people.loc[id_index, 'assigned'] = 1
-                # people.loc[id_index, 'htype'] = 11
                 member_list.append(id_index)
             else:
                 pass
 
     if x == 'female':
-        # print("female")
         selected_index_list = people[(people['age'] <= upper_age) &
                                           (people['age'] >= lower_age) &
                                           (people['gender'] == 'f') &
@@ -478,20 +365,16 @@ def __get_group_quarter_ids__(x, people, upper_age, lower_age, number):
         if len(selected_index_list) >= number:
             id_index = random.sample(list(selected_index_list), number)
             people.loc[id_index, 'assigned'] = 1
-            # people.loc[id_index, 'htype'] = 11
             member_list.append(id_index)
         else:
             # Handle the case where there are not enough eligible indices
-            #print('gp female Not enough people')
             selected_index_list = people[(people['age'] >= 0) & (people['gender'] == 'f') & (people['assigned'] == 0)].index
             if len(selected_index_list) >= number:
                 id_index = random.sample(list(selected_index_list), number)
                 people.loc[id_index, 'assigned'] = 1
-                # people.loc[id_index, 'htype'] = 11
                 member_list.append(id_index)
             else:
                 pass
-    # print(member_list)
     return member_list
 
 

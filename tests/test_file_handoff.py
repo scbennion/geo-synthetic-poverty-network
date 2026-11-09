@@ -2,7 +2,7 @@
 
 Real synthesis inputs are not in the repository, so the population GeoPackage is
 built here with the same columns, id formats and CRS the synthesis driver writes
-(it goes through ``src.tools.__collect_results__`` and ``to_file(..., driver='GPKG')``
+(it goes through ``src.tools.collect_results`` and ``to_file(..., driver='GPKG')``
 exactly as ``run-synthesis-by-state.py`` does). The network and validation drivers
 are then run as subprocesses against it with ``GSPN_DATA_DIR`` pointing at tmp.
 """
@@ -19,7 +19,7 @@ from shapely.geometry import Point, box
 
 from src.create_social_networks import wp_kind
 from src.population_io import population_source, read_population
-from src.tools import __collect_results__
+from src.tools import collect_results
 
 ROOT = Path(__file__).resolve().parent.parent
 NETWORKS = ROOT / 'code' / '2-social-networks'
@@ -95,7 +95,7 @@ def _tract_people(geoid, minx):
 def _population_gpkg(path, tracts):
     """Write a population GeoPackage the way run-synthesis-by-state.py does."""
     people = [_tract_people(g, -112 + TRACTS.index(g) * 0.01) for g in tracts]
-    population_df = __collect_results__(people, 'Pop')
+    population_df = collect_results(people, 'Pop')
     population_df['wp'] = population_df['wp'].fillna(population_df['hhold'])  # missing-wp branch
     path.parent.mkdir(parents=True, exist_ok=True)
     population_df.to_file(path, driver='GPKG')

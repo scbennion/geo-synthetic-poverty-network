@@ -3,7 +3,7 @@
 The synthesis driver writes one GeoPackage per run (see ``src.cli.run_name``):
 ``results-data/ut/ut_population.gpkg`` for a full-state run and
 ``results-data/ut/ut_c035_population.gpkg`` for a county run. Its layer holds the
-columns built in ``src.tools.__collect_results__``: ``id``, ``age``, ``gender``,
+columns built in ``src.tools.collect_results``: ``id``, ``age``, ``gender``,
 ``assigned``, ``hhold``, ``htype``, ``wp``, ``urban``, ``long``, ``lat`` and the
 point ``geometry`` (EPSG:4269). The network and validation stages read that file
 directly through this module; there is no intermediate ``.pickle``.

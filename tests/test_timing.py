@@ -60,7 +60,7 @@ def test_failed_tract_records_stage_and_rollback(monkeypatch):
     def fail(*args):
         raise ValueError('broken fixture')
 
-    monkeypatch.setattr(driver, '__create_individuals__', fail)
+    monkeypatch.setattr(driver, 'create_individuals', fail)
     school, daycare = Sites(), Sites()
     tract = type('Tract', (), {'name': '49035000100'})()
     timing = RunTiming()

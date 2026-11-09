@@ -15,7 +15,7 @@ def add_seed_arg(parser):
 def seed_everything(seed):
     """Seed Python's `random` and return a NumPy Generator built from the same seed.
 
-    Python `random` is still used by the household, education and tools modules;
+    Python `random` is still used by the household and education modules;
     NumPy and pandas draws take the returned Generator explicitly.
     """
     random.seed(seed)

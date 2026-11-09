@@ -23,19 +23,11 @@ def __assign_workplaces__(tract, people, od, us_tract_id_work, rng=None):
     https://www.princeton.edu/~erossi/fsdae.pdf
     """
     # destination tracts and numbers
-    # print("tract number is",tract.name, type(tract.name))
     #
-    #print("- Step 2.1 Assigning Work-")
-    # print("od")
-    # print(od.head())
-    # print('tract name type', type(tract.name))
 
     tract_with_number_jobs = od[od['home'] == tract.name].set_index('work').S000  # set work index, used to be td
     tract_with_number_jobs = tract_with_number_jobs.apply(np.ceil).astype(
         int)  # from this tract to others, used to be td
-    # print(tract_with_number_jobs.index)
-    # print("--------after apply ceil--------")
-    # print(td.head())
 
     # 58.5%: US population (16+) - employment rate
     # https://data.bls.gov/timeseries/LNS12300000
@@ -50,19 +42,16 @@ def __assign_workplaces__(tract, people, od, us_tract_id_work, rng=None):
     if total_workplaces > total_employed:
         # Randomly select employed individuals
         employed = people[people.age >= 18].index
-        # destination_tract = np.repeat(tract_with_number_jobs.index.values, tract_with_number_jobs.values)).sample(total_employed).tolist()
         # Randomly select destination tracts based on the total number of employed individuals
         destination_tract = pd.Series(
             np.repeat(tract_with_number_jobs.index.values, tract_with_number_jobs.values)).sample(total_employed, random_state=rng)
 
     else:
         # Select all employed individuals
-        # employed = people[people.age >= 18].index
         employed = people[people.age >= 18].sample(total_workplaces, random_state=rng).index
         # Repeat destination tracts based on the total number of workplaces needed
         destination_tract = pd.Series(np.repeat(tract_with_number_jobs.index.values, tract_with_number_jobs.values))
 
-    # print(type(destination_tract))
     # Assign workplace tracts to employed individuals
     people.loc[employed, "wp"] = destination_tract.apply(lambda x: generate_workplace_id(x, us_tract_id_work, rng)).values
 

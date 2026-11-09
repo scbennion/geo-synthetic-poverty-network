@@ -18,7 +18,7 @@ A full tract identifier has 11 digits: state (2), county (3), tract (6). A block
 
 For a single state the order is:
 
-DP1 comes from the Census API dataset `2020/dec/dp`, `group(DP1)`; its variable names (`DP1_0001C` = count, `DP1_0001P` = percent) are the same as in a data.census.gov table download. The downloader uses the Census API when `CENSUS_API_KEY` is set and otherwise requests the same table through the data.census.gov endpoint. This describes the code path, not a general Census API access policy; the fallback is not a documented public API. The `-work` suffix means `WP_CNT` (workplaces per tract) has been added; the synthesis needs it (`__create_work_location__`), so the demographic-only file cannot stand in for it. The written tract file holds the 12 TIGER attributes, then `DP1_0001C`, `DP1_0025C`, the 18 male age groups, `DP1_0049C`, the 18 female age groups, `DP1_0112C`–`DP1_0146C`, `WP_CNT` and geometry; `__create_individuals__` relies on that order (`tract[13:50]`). See [`src/census_prep.py`](../src/census_prep.py).
+DP1 comes from the Census API dataset `2020/dec/dp`, `group(DP1)`; its variable names (`DP1_0001C` = count, `DP1_0001P` = percent) are the same as in a data.census.gov table download. The downloader uses the Census API when `CENSUS_API_KEY` is set and otherwise requests the same table through the data.census.gov endpoint. This describes the code path, not a general Census API access policy; the fallback is not a documented public API. The `-work` suffix means `WP_CNT` (workplaces per tract) has been added; the synthesis needs it (`__create_work_location__`), so the demographic-only file cannot stand in for it. The written tract file holds the 12 TIGER attributes, then `DP1_0001C`, `DP1_0025C`, the 18 male age groups, `DP1_0049C`, the 18 female age groups, `DP1_0112C`–`DP1_0146C`, `WP_CNT` and geometry; `create_individuals` now selects its age/sex fields by name, while validation helpers still depend on the prepared column order. See [`src/census_prep.py`](../src/census_prep.py).
 
 The paper's [Table 1 and references 21/35](https://doi.org/10.1038/s41597-024-03970-1) identify these sources as the [2020 Census Demographic Profile](https://www.census.gov/data/tables/2023/dec/2020-census-demographic-profile.html) and 2020 tract boundaries. Its reference 22 also identifies [2020 TIGER/Line urban-area boundaries](https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2020&layergroup=Urban+Areas), used later for the urban flag.
 
@@ -173,7 +173,7 @@ The JSON supplies destination-tract workplace metadata, including `GEOID`, `WP_C
 
 | Input | Fields consumed and interpretation |
 | --- | --- |
-| Tracts | `GEOID`, polygon geometry, DP1 demographic/household fields, and `WP_CNT`. The synthesis driver indexes by `GEOID`; the individual generator currently depends on column order as well as field names. See [Census preparation](input-data.md#census-geography-and-demographic-inputs) for the expected order. |
+| Tracts | `GEOID`, polygon geometry, DP1 demographic/household fields, and `WP_CNT`. The synthesis driver indexes by `GEOID`; the individual generator selects age/sex counts by name, while validation helpers still require the prepared column order. See [Census preparation](input-data.md#census-geography-and-demographic-inputs) for the expected order. |
 | Commuting | `home`, `work`: 11-digit tract identifiers; `S000`: aggregate job count for that pair. This is not an individual movement table. |
 | Workplace JSON | Newline-delimited records with `GEOID`, `WP_CNT`, and `WP_PROBA`. Positive workplace counts need corresponding selection probabilities. The assignment helper normalizes their sum when necessary. |
 | Roads | Line geometry with a CRS and `MTFCC` road class. Synthesis selects local/service roads for homes and secondary roads plus local/service-road endpoints for workplaces. |
@@ -219,7 +219,7 @@ The separately supplied Utah work-network download uses a headered edge list ins
 
 ### Population and workplace outputs
 
-The population table describes people and their home locations; a separate workplace table describes synthetic work sites. [`__collect_results__`](../src/tools.py) assembles them, and the [state driver](../code/1-population-synthesis/run-synthesis-by-state.py) writes them under the paths above. A population CSV is written only in the branch handling missing `id` or `wp` values, so it is not a guaranteed handoff. The driver sets a fixed GeoPackage timestamp (`OGR_CURRENT_DATE`, unless already set) to support byte comparisons of repeated runs with identical prepared inputs, environment, and seed.
+The population table describes people and their home locations; a separate workplace table describes synthetic work sites. [`collect_results`](../src/tools.py) assembles them, and the [state driver](../code/1-population-synthesis/run-synthesis-by-state.py) writes them under the paths above. A population CSV is written only in the branch handling missing `id` or `wp` values, so it is not a guaranteed handoff. The driver sets a fixed GeoPackage timestamp (`OGR_CURRENT_DATE`, unless already set) to support byte comparisons of repeated runs with identical prepared inputs, environment, and seed.
 
 | Population field | Meaning and construction |
 | --- | --- |

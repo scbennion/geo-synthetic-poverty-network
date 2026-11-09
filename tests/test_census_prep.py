@@ -11,7 +11,7 @@ import pytest
 from shapely.geometry import box
 
 from src import census_prep as cp
-from src.ctreate_individuals import __create_individuals__
+from src.create_individuals import create_individuals
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESS = ROOT / 'code' / '0-preprocess' / 'prepare-census' / 'process_census_shp.py'
@@ -137,10 +137,10 @@ def test_process_state_writes_both_files(tmp_path):
     wp = dict(zip(work['GEOID'], work['WP_CNT']))
     assert (wp['49035100100'], wp['49035100200']) == (6, 2)
 
-    # exactly how run-synthesis-by-state.py and __create_individuals__ index a tract
+    # The synthesis driver indexes by GEOID; retain the prepared column layout.
     tract = work.sort_values('GEOID').set_index('GEOID').iloc[0]
     assert list(tract[13:50].drop(['DP1_0049C']).index) == MALE_GROUPS + FEMALE_GROUPS
-    people = __create_individuals__(tract)
+    people = create_individuals(tract)
     assert len(people) == sum(_dp1_value(c, 0) for c in MALE_GROUPS + FEMALE_GROUPS)
     assert (people.gender == 'm').sum() == sum(_dp1_value(c, 0) for c in MALE_GROUPS)
     # src/verification.py indexes the frame with GEOID as a column

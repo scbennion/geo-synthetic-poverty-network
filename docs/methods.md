@@ -12,8 +12,8 @@ These are rules the code uses to build an artificial population. They describe h
 
 | Topic | Rule in plain language | Evidence |
 | --- | --- | --- |
-| Age within a five-year group | If Census data report 12 males aged 10–14, the code creates 2 aged 10, 2 aged 11, 2 aged 12, 2 aged 13, and 4 aged 14. The total stays 12; those exact ages are generated, not observed. | [Individual generator](../src/ctreate_individuals.py) |
-| Sex categories | People receive the Census categories `m` or `f`; gender identity is not represented. | [Individual generator](../src/ctreate_individuals.py) |
+| Age within a five-year group | If Census data report 12 males aged 10–14, the code creates 2 aged 10, 2 aged 11, 2 aged 12, 2 aged 13, and 4 aged 14. The total stays 12; those exact ages are generated, not observed. | [Individual generator](../src/create_individuals.py) |
+| Sex categories | People receive the Census categories `m` or `f`; gender identity is not represented. | [Individual generator](../src/create_individuals.py) |
 | Household membership | Household types are filled in a fixed order. Members are selected from generated people in the tract, rather than reconstructed from actual families. | [Household coordinator](../src/assign_household.py) |
 | Partners | Select a male aged 20+ first. At ages 20–25, select a female aged 18 through his age +15. For older males, use his age −5 through his age +15; if none is available, try any unassigned female aged 20+. Same-sex couples are not generated. | [Partner selection](../src/assign_household.py) |
 | Requested children | For couples with children, the random number is centered at **2**; for single-parent categories, at **1.6**. Its standard deviation is 1. After converting to a positive whole number, at least one child is requested. | [Member selection](../src/assign_household.py), [count explanation](#requested-child-and-roommate-counts) |
@@ -34,7 +34,7 @@ These are rules the code uses to build an artificial population. They describe h
 
 | Module | Role |
 | --- | --- |
-| [`src/ctreate_individuals.py`](../src/ctreate_individuals.py) | Generate [ages and sex categories](#ages-and-sex-categories). |
+| [`src/create_individuals.py`](../src/create_individuals.py) | Generate [ages and sex categories](#ages-and-sex-categories). |
 | [`src/assign_household.py`](../src/assign_household.py) | Assign [household membership](#household-membership). |
 | [`src/create_space.py`](../src/create_space.py) | Generate [home and workplace points](#road-placement). |
 | [`src/assign_workplace.py`](../src/assign_workplace.py) | Use prepared [employment inputs](input-data.md#employment-inputs) to [assign workers](#employment-assignment). |
@@ -43,7 +43,7 @@ These are rules the code uses to build an artificial population. They describe h
 
 ### Ages and sex categories
 
-The input [Census DP1 age/sex counts](https://api.census.gov/data/2020/dec/dp/groups/DP1.json) already use age categories. [`__create_individuals__`](../src/ctreate_individuals.py) takes 18 groups for each of two sex categories and expands their counts into individual people. For example, if the Census reports 12 males aged 10–14, it creates the following people:
+The input [Census DP1 age/sex counts](https://api.census.gov/data/2020/dec/dp/groups/DP1.json) already use age categories. [`create_individuals`](../src/create_individuals.py) takes 18 groups for each of two sex categories and expands their counts into individual people. For example, if the Census reports 12 males aged 10–14, it creates the following people:
 
 | Generated age | Number of people |
 | --- | --- |
@@ -287,7 +287,7 @@ It then compares demographic-count vectors with **2022 ACS PUMS** by 2020 PUMA b
 
 | Check | What the code compares | Source |
 | --- | --- | --- |
-| Per-tract verification | Generated total, sex/age-bin, and household-type counts against DP1 inputs; differences are saved for each successful tract. | [`__verfication__`](../src/tools.py) |
+| Per-tract verification | Generated total, sex/age-bin, and household-type counts against DP1 inputs; differences are saved for each successful tract. | [`verify_population`](../src/tools.py) |
 | Age/sex distributions | Generated bin totals against both all input tracts and a subset excluding logged failures; writes tables and plots. | [Population validation driver](../code/3-validation/validation_population.py), [aggregation](../src/after_validation_functions.py) |
 | Household category totals | Unique generated household IDs by types 0–10 against Census-derived targets; group quarters are not among those 11 plotted categories. | [Household driver](../code/3-validation/validation_hhold.py), [comparison helper](../src/verification.py) |
 | Average household size | Per-tract generated people / unique household IDs, compared with DP1 total population / regular household count. The differing handling of group quarters needs review before interpreting this as average regular-household size. | [Size helper](../src/after_validation_functions.py), [driver](../code/3-validation/validation_tract_avg_hhold.py) |
