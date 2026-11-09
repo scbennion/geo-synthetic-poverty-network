@@ -4,6 +4,10 @@ This guide runs the whole pipeline for one area, from downloading public data to
 you can query. The example is Salt Lake County, Utah (`--state ut --counties 035`). Drop
 `--counties 035` to run all of Utah.
 
+This is the authoritative execution guide for the existing synthetic population/contact pipeline.
+It does not run the planned weighted simulation. See [research direction](../README.md#research-questions) for
+the MVP scope and [data interfaces](input-data.md) for file handoffs.
+
 ```mermaid
 flowchart LR
   A[0. Prepare inputs<br/>census, commuting, roads, schools] --> B[1. Synthesize<br/>people, households, places]
@@ -37,9 +41,15 @@ flowchart LR
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt pytest     # also installs this repo as the `src` package
+pip install -r requirements.txt pytest
 python -m pytest                           # about 1.5 minutes
 ```
+
+**Setup gap:** the local-package `-e .` entry is currently commented out in `requirements.txt`.
+The commands above do not install this repository as the `src` package. The drivers require
+that package to be importable in your configured environment. Dependency completeness,
+installation fixes, and environment locking are deferred; this documentation change does
+not claim that a fresh installation has been verified.
 
 All scripts find their data through `src/settings.py`. By default that is `<repo>/data/`, which
 git ignores. To keep data elsewhere, set `GSPN_DATA_DIR` before running anything:
@@ -79,11 +89,12 @@ python code/0-preprocess/prepare-edu/build_edu_sites.py --state ut --download
 ```
 
 What comes out, under `data/processed-data/`: census tracts, the commuting table, the cleaned
-roads, school and daycare sites, urban areas and `us_tract_number_work.json`. The README's
-*Input paths* section lists the exact file names.
+roads, school and daycare sites, urban areas and `us_tract_number_work.json`.
+[Input paths](input-data.md#input-paths) lists the exact file names;
+[input data](input-data.md) explains the sources and transformations.
 
 **Known issue:** `build_tract_workplace_json.py --seed` does not yet make the workplace size
-weights repeatable (see [`open-decisions.md`](open-decisions.md), §1). Rebuilding this file
+weights repeatable (see [workplace-weight seeding](limitations.md#setup-and-file-handoff-gaps)). Rebuilding this file
 gives a slightly different population for the same seed. Keep the file if you need to repeat a
 run exactly.
 
@@ -97,7 +108,8 @@ Add `--dry-run` first to list the tracts it would process. Outputs go to
 `data/results-data/ut/` and are named after the run: `ut_c035` for this county, `ut` for the
 whole state.
 
-- `ut_c035_population.gpkg` and `.csv`: one row per person with age, sex, household and home point
+- `ut_c035_population.gpkg`: one row per person with age, sex, household and home point.
+  A `.csv` is also written in the missing-ID/`wp` cleanup branch; it is not guaranteed.
 - `ut_c035_workplace.gpkg`: workplace points
 - `ut_c035_error_log.csv`: tracts that failed. In Salt Lake County, one tract with 16 people
   (`49035980000`) fails. That's expected; see the changelog.
@@ -154,6 +166,12 @@ the same inputs and compare the output files byte for byte (`cmp`). The Salt Lak
 on all 18 files.
 
 ## 4. Export the run for Neo4j
+
+Before exporting, confirm that `data/results-data/ut/ut_c035_population.csv` exists and matches
+the run. The current exporter reads this CSV directly, while synthesis only writes it in its
+missing-ID/`wp` cleanup branch. A GeoPackage alone is sufficient for contacts/validation but
+does not satisfy the exporter. This [handoff gap](input-data.md#stage-handoffs) remains
+for later code work; no automatic conversion is implemented here.
 
 ```bash
 python code/4-knowledge-graph/export_neo4j_csv.py --state ut --counties 035 --seed 42
@@ -255,7 +273,7 @@ To view a graph snippet, navigate to the Bloom tab, and select Database: ut-c035
 | `process_census_shp.py` exits with code 3 | The commuting inputs are missing. Run `process_lodes8.py` and `process_cbp.py` first. |
 | Synthesis takes hours | The machine slept. Keep it awake (see *Before you start*). |
 | Network step finishes instantly with old results | A network file already exists and is not rebuilt. Delete it first. |
-| A rerun's outputs differ from an earlier run | Different library versions (`requirements.txt` pins none) or a rebuilt `us_tract_number_work.json`. See [`open-decisions.md`](open-decisions.md). |
+| A rerun's scientific outputs differ from an earlier run | Different library versions (most are unpinned) or a rebuilt `us_tract_number_work.json`. Timing reports vary normally. See [`limitations.md`](limitations.md). |
 | Can't find `neo4j-cli` | `neo4j-cli` is not installed, run `pip install neo4j-cli` |
 | `neo4j-admin` can't find Java | Set `JAVA_HOME` to the Java runtime Desktop downloaded, as above. |
 | `neo4j-admin import` refuses to run | The database already exists. Drop it first. |

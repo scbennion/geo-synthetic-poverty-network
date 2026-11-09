@@ -5,68 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6537a2b2-1e60-49d5-8a3f-fcb4b4e7b39d" name="Changes" comment="create venv">
-      <change afterPath="$PROJECT_DIR$/CHANGELOG_vs_jiang2024.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-census/download_census_inputs.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/build_tract_workplace_json.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-edu/build_edu_sites.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-road/clean_roads.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/code/4-knowledge-graph/constraints.cypher" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/code/4-knowledge-graph/export_neo4j_csv.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/code/4-knowledge-graph/tract_summary.cypher" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/agents.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/knowledge-graph.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/open-decisions.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/optimization.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/pipeline.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/census_prep.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/clean_roads.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/cli.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/population_io.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/seeding.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/timing.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_census_prep.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_cli_dry_run.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_commute_prep.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_edu_sites.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_education_capacity.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_file_handoff.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_imports.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_neo4j_export.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_optimization.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_reproducibility.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_roads.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_timing.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_workplace_count.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/geo-synthetic-poverty-network.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/geo-synthetic-poverty-network.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/geo-synthetic-poverty-network.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CHANGELOG_vs_jiang2024.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Figures/social_nw.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Figures/workflow.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-census/process_census_shp.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-census/process_census_shp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/add_tract_workplaces.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/add_tract_workplaces.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_cbp.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_cbp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_lodes8.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-commute-data/process_lodes8.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-road/clean_raod_with_grass.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/0-preprocess/prepare-road/download_process_roads.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/0-preprocess/prepare-road/download_process_roads.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/1-population-synthesis/run-synthesis-by-state.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/1-population-synthesis/run-synthesis-by-state.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/2-social-networks/create_edu_hhold_get_work_pop.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/2-social-networks/create_edu_hhold_get_work_pop.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/2-social-networks/create_work_networks.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/2-social-networks/create_work_networks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_external_cosine.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_external_cosine.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_external_sc_bg.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_external_sc_bg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_hhold.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_hhold.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_population.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_population.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/code/3-validation/validation_tract_avg_hhold.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/3-validation/validation_tract_avg_hhold.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/after_validation_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/after_validation_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assign_education_site.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/assign_education_site.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assign_household.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/assign_household.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assign_workplace.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/assign_workplace.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/create_social_networks.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/create_social_networks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/create_space.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/create_space.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ctreate_individuals.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/ctreate_individuals.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/preprocess_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/preprocess_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/agents.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/agents.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/knowledge-graph.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/knowledge-graph.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/open-decisions.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/pipeline.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/pipeline.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/state-download-format.md" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,7 +33,7 @@
 }</component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/scbennion/geo-synthetic-poverty-network&quot;,
+    &quot;url&quot;: &quot;git@github.com:scbennion/geo-synthetic-poverty-network.git&quot;,
     &quot;accountId&quot;: &quot;c054bb08-3a2a-404f-8ccb-77c37e669d56&quot;
   }
 }</component>
@@ -94,61 +43,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.47168972248064E-14" />
-      <entry key="MS500" value="0.006556513678066203" />
-      <entry key="S2" value="1.205565362094968" />
-      <entry key="S5" value="3.4595043300963755" />
-      <entry key="S10" value="4.983370075257677" />
-      <entry key="S30" value="8.886460996419528" />
-      <entry key="S60" value="17.706926316400097" />
-      <entry key="M2" value="38.314765096375574" />
-      <entry key="M5" value="102.67477442976741" />
-      <entry key="M10" value="231.03735396069808" />
-      <entry key="M15" value="335.9581683841728" />
-      <entry key="M30" value="514.1032738642651" />
-      <entry key="H1" value="647.1026546796684" />
-      <entry key="H2" value="728.8691324053275" />
-      <entry key="H4" value="774.2723420631403" />
-      <entry key="D1" value="814.6372135286417" />
-      <entry key="W1" value="821.7992575555802" />
+      <entry key="MS100" value="1.0000019493240981" />
+      <entry key="MS500" value="1.339089074316909" />
+      <entry key="S2" value="7.967166158688986" />
+      <entry key="S5" value="22.61261123559372" />
+      <entry key="S10" value="39.73314382743313" />
+      <entry key="S30" value="90.13509548559358" />
+      <entry key="S60" value="163.4691437002306" />
+      <entry key="M2" value="294.55408589290386" />
+      <entry key="M5" value="561.0435719011911" />
+      <entry key="M10" value="865.2731814518211" />
+      <entry key="M15" value="1137.771740992108" />
+      <entry key="M30" value="1783.244305309904" />
+      <entry key="H1" value="2470.482365072474" />
+      <entry key="H2" value="2999.053030469497" />
+      <entry key="H4" value="3331.3844998550153" />
+      <entry key="D1" value="3651.632554306618" />
+      <entry key="W1" value="3710.9753422077006" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0000000000035916" />
-      <entry key="S5" value="1.0000264311734044" />
-      <entry key="S10" value="1.005141125694283" />
-      <entry key="S30" value="1.1725918283860728" />
-      <entry key="S60" value="1.416048518430428" />
-      <entry key="M2" value="1.6744925270662052" />
-      <entry key="M5" value="2.1931218974516273" />
-      <entry key="M10" value="2.7499072160540567" />
-      <entry key="M15" value="3.0571235226228852" />
-      <entry key="M30" value="3.462239723875399" />
-      <entry key="H1" value="3.711917946507066" />
-      <entry key="H2" value="3.850784176241784" />
-      <entry key="H4" value="3.9240483236088024" />
-      <entry key="D1" value="3.9871503419892944" />
-      <entry key="W1" value="3.998159597262661" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="5.5104129750428E-193" />
+      <entry key="S10" value="7.461280673564042E-97" />
+      <entry key="S30" value="1.0617174978023186E-32" />
+      <entry key="S60" value="1.347439237022831E-16" />
+      <entry key="M2" value="1.633423282308801E-8" />
+      <entry key="M5" value="0.0013700896397802098" />
+      <entry key="M10" value="0.06873234260616547" />
+      <entry key="M15" value="0.2613415065879494" />
+      <entry key="M30" value="1.0122897439215754" />
+      <entry key="H1" value="2.0071148230484024" />
+      <entry key="H2" value="2.831627386341223" />
+      <entry key="H4" value="3.3649437573326866" />
+      <entry key="D1" value="3.886301786247604" />
+      <entry key="W1" value="3.9835537805159866" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="8.222861188296602E-5" />
-      <entry key="MS500" value="0.1588383904301567" />
-      <entry key="S2" value="1.824563398276454" />
-      <entry key="S5" value="4.281377043849148" />
-      <entry key="S10" value="5.893162207068566" />
-      <entry key="S30" value="10.015797839879285" />
-      <entry key="S60" value="19.093091719331113" />
-      <entry key="M2" value="39.96904540101364" />
-      <entry key="M5" value="104.85419237875232" />
-      <entry key="M10" value="233.7766277984863" />
-      <entry key="M15" value="339.00656580296993" />
-      <entry key="M30" value="517.5599272909059" />
-      <entry key="H1" value="650.811360225825" />
-      <entry key="H2" value="732.7181866334483" />
-      <entry key="H4" value="778.1954917246753" />
-      <entry key="D1" value="818.6242091607163" />
-      <entry key="W1" value="825.7973949271599" />
+      <entry key="MS100" value="0.9592659731036689" />
+      <entry key="MS500" value="1.327353482129457" />
+      <entry key="S2" value="7.944361854685635" />
+      <entry key="S5" value="22.58560268366601" />
+      <entry key="S10" value="39.709328114797636" />
+      <entry key="S30" value="90.11826168924974" />
+      <entry key="S60" value="163.45541836773265" />
+      <entry key="M2" value="294.5428211290243" />
+      <entry key="M5" value="561.036875090662" />
+      <entry key="M10" value="865.3354156806049" />
+      <entry key="M15" value="1138.0268320274854" />
+      <entry key="M30" value="1784.2507323832017" />
+      <entry key="H1" value="2472.4849298465338" />
+      <entry key="H2" value="3001.881733112212" />
+      <entry key="H4" value="3334.747773189249" />
+      <entry key="D1" value="3655.518543929619" />
+      <entry key="W1" value="3714.958850495281" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -169,12 +118,14 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "personalize__repo",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "/Users/sbennion/Desktop/Work/geo-synthetic-poverty-network",
     "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.jshint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.jshint": "",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "python.packages.toolwindow.project.migrated.to.right.top.v2": "true",
@@ -186,6 +137,84 @@
     ]
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <module name="geo-synthetic-poverty-network" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <module name="geo-synthetic-poverty-network" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docs" factoryName="Docutils task">
+      <module name="geo-synthetic-poverty-network" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="docutils_input_file" value="" />
+      <option name="docutils_output_file" value="" />
+      <option name="docutils_params" value="" />
+      <option name="docutils_task" value="" />
+      <option name="docutils_open_in_browser" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docs" factoryName="Sphinx task">
+      <module name="geo-synthetic-poverty-network" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="docutils_input_file" value="" />
+      <option name="docutils_output_file" value="" />
+      <option name="docutils_params" value="" />
+      <option name="docutils_task" value="" />
+      <option name="docutils_open_in_browser" value="false" />
+      <method v="2" />
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

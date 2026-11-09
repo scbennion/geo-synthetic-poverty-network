@@ -18,7 +18,7 @@ contact networks between people. Each run goes into its own database, named afte
 
 - **People**: one node per synthetic person. `age` is in whole years and `gender` is `m` or `f`.
 - **Households**: `htype` is the household category from synthesis (0–10 regular household
-  types, 11 group quarters; see the README's household table). `size` is the number of members.
+  types, 11 group quarters; see the [household category table](methods.md#household-category-targets)). `size` is the number of members.
   `location` is the home point that all members share, and `urban` says whether it falls in a
   2020 urban area.
 - **Workplaces**: workers can work outside the run's counties, so some workplaces have no
@@ -71,32 +71,7 @@ locations are stored as WGS-84. The two differ by about a metre in Utah.
 
 ## Building a database
 
-The steps below use a Neo4j Desktop 2 DBMS, which runs the Enterprise edition and so can hold
-one database per run. The connection settings (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`)
-live in an env file outside the repo, for example `~/.config/gspn/neo4j.env`.
-
-```bash
-# 1. Write the import CSVs to data/neo4j-import/<run>/ (about 20 s for Salt Lake County)
-python code/4-knowledge-graph/export_neo4j_csv.py --state ut --counties 035 --seed 42
-
-# 2. Bulk-import into a new database (about 20 s). The DBMS can keep running; the database
-#    must not exist yet. <dbms> is the root_path from `neo4j-cli desktop dbms list`, and
-#    JAVA_HOME can point at the Java runtime Desktop downloaded (Application/Cache/runtime/...).
-<dbms>/bin/neo4j-admin database import full ut-c035 @data/neo4j-import/ut_c035/import.args
-
-# 3. Register the database
-neo4j-cli query --env ~/.config/gspn/neo4j.env --database system --rw 'CREATE DATABASE `ut-c035` WAIT'
-
-# 4. Add constraints and indexes (bulk import creates none)
-neo4j-cli query --env ~/.config/gspn/neo4j.env --database ut-c035 --rw "$(cat code/4-knowledge-graph/constraints.cypher)"
-
-# 5. Add the tract summary layer (below)
-neo4j-cli query --env ~/.config/gspn/neo4j.env --database ut-c035 --rw "$(cat code/4-knowledge-graph/tract_summary.cypher)"
-```
-
-To rebuild a run, drop its database first
-(`neo4j-cli query ... --database system --rw 'DROP DATABASE `ut-c035``), then repeat steps 2–5.
-The full sequence, from raw data to graph, is in [`pipeline.md`](pipeline.md).
+Use the [pipeline guide](pipeline.md#4-export-the-run-for-neo4j) for export, database creation/import, credentials, constraints, and rebuilding a run. That guide maintains the execution sequence in one place. Each run uses its own database, such as `ut-c035` for Salt Lake County. The model and queries below describe the existing knowledge graph, not the planned resource-transfer simulation.
 
 ## Tract summary layer
 
@@ -109,9 +84,9 @@ layer on top that shows a whole run at once, with tracts as nodes:
 (:Tract)-[:CONTACTS_WITH {total, work, school, daycare}]->(:Tract)      lower GEOID -> higher GEOID
 ```
 
-- These relationships are derived from the person-level graph. Rerun the script after any
-  reimport (it deletes the old layer first):
-  `neo4j-cli query --env ~/.config/gspn/neo4j.env --database ut-c035 --rw "$(cat code/4-knowledge-graph/tract_summary.cypher)"`
+- These relationships are derived from the person-level graph. Rebuild the summary after any
+  reimport using the [pipeline import sequence](pipeline.md#import-a-run); the summary script
+  deletes the old summary relationships first.
 - Same-tract counts are stored on the tract (`work_local`, `contacts_within`) instead of as
   self-loops. Household contacts never cross tracts, so `CONTACTS_WITH` covers work, school
   and daycare only.
