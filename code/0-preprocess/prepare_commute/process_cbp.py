@@ -12,7 +12,8 @@ import argparse
 import os
 
 from loguru import logger
-from pipeline.preprocess.preprocess_data import CBP_URL, download_file, read_cbp_counties
+from _downloads import download_file
+from prepare_commute.cbp import CBP_URL, read_cbp_counties
 from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR
 
 DEFAULT_INPUT = os.path.join(RAW_DATA_DIR, 'workplace', 'CB2000CBP.zip')

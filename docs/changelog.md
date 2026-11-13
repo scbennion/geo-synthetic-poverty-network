@@ -1,6 +1,14 @@
 # Changes vs. Jiang et al. (2024)
 
+## 2026-11-13 — Simplify Python packaging
+
+- Restore the `src`-only packaging configuration from `0b354fa`, including Python `>=3.12,<3.13`, and remove the `pipeline.*` import aliases. Stage scripts use direct imports; preprocessing shares helpers through the documented `PYTHONPATH`. Update import checks and setup documentation accordingly.
+
 One line per behavioural change: file, function, what changed, why, effect on outputs.
+
+## Preprocessing organization
+
+- `code/0-preprocess/`: commands and helpers now live under `prepare_census`, `prepare_commute`, `prepare_roads`, and `prepare_education`. Script filenames are retained; old folder paths and imports are removed. `census_prep.py` moves into Census preparation, while `preprocess_data.py` is split into road inputs, LODES, CBP, workplace-count helpers, and a shared downloader. No changes to algorithms, CLI options, or data outputs. Earlier entries below retain their historical paths.
 
 ## Task 0: packaging and single-geography switch
 
@@ -9,7 +17,7 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 - `code/1-population-synthesis/run-synthesis-by-state.py` `__main__`: new `--state`, `--counties`, `--dry-run`; paths from settings; `us_tract_number_work.json` is now loaded inside `__main__` (skipped in dry-run) instead of at import. Default (no options) still runs all 51 areas with unchanged output names. With `--counties` only those tracts are synthesized and outputs are named `<state>/<state>_c<counties>_*` (e.g. `ut/ut_c035_population.gpkg`) so they never overwrite a full-state run.
 - `code/2-social-networks/create_edu_hhold_get_work_pop.py` `create_by_state`: new `--state`/`--counties`; reads `<state>_c<counties>_population.pickle`, or filters the full-state file by the home-tract prefix of person `id` if no county run exists; networks written as `<state>/social_networks/<run>_*_network.csv` and the work population as `1-us/<run>_work_population.csv` (`us_` only for the all-states default). Paths from settings.
 - `code/2-social-networks/create_work_networks.py` `create_us_work_network`: new `--state`/`--counties`; reads and writes `1-us/<run>_work_population.csv` / `<run>_work_network.csv` (`us_` only for the all-states default). Paths from settings.
-- `code/3-validation/*.py`: hard-coded `../../data/...` and cwd-relative `data/...` paths replaced with settings paths. `validation_external_*.py` now find the `RESULTS_DIR` they import. No effect on outputs.
+- `code/3-validation/*.py`: hard-coded `../../data/...` and cwd-relative `../data-pre-reorganization` paths replaced with settings paths. `validation_external_*.py` now find the `RESULTS_DIR` they import. No effect on outputs.
 - `src/create_social_networks.py` `create_networks_types`: optional `name` for the network file prefix; defaults to the state abbreviation, so existing callers are unchanged.
 
 ## Open decisions
@@ -18,7 +26,7 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 
 ## Agent A: reproducibility
 
-- `src/seeding.py`: new; `seed_everything(seed)` seeds Python `random` and returns `np.random.default_rng(seed)`; `add_seed_arg` adds `--seed` (default 42, the old hard-coded `r_seed`). No effect on outputs by itself.
+- `../src/set_random_seed.py`: new; `seed_everything(seed)` seeds Python `random` and returns `np.random.default_rng(seed)`; `add_seed_arg` adds `--seed` (default 42, the old hard-coded `r_seed`). No effect on outputs by itself.
 - `code/1-population-synthesis/run-synthesis-by-state.py` `__main__`/`__synthesize__`: new `--seed`; one Generator is created per run and passed to every drawing step (previously only `random.seed(42)`, NumPy and pandas draws were unseeded). Same seed now gives byte-identical outputs; outputs at seed 42 differ from earlier runs because the NumPy random stream changed.
 - `code/1-population-synthesis/run-synthesis-by-state.py` `__main__`: sets `OGR_CURRENT_DATE=2000-01-01T00:00:00Z` unless already set, so GDAL writes a fixed timestamp into `*_population.gpkg`/`*_workplace.gpkg` metadata instead of the wall-clock time; otherwise same-seed GeoPackages differ byte-wise. Only the GeoPackage `last_change` metadata changes.
 - `src/ctreate_individuals.py` `__create_individuals__`: new `rng`; the age-sex shuffle uses it instead of the fixed `random_state=123` (kept when `rng` is None). Person-id-to-age assignment now depends on `--seed`.
@@ -48,7 +56,7 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 - Out-of-state destinations: by the LODES spec the `aux` file holds jobs *located in* the state with residence outside it, so its `w_geocode`s are in-state and the "out-of-state destinations in the aux file" set is normally empty. Utah residents' out-of-state jobs appear in the neighbouring states' `aux` files (`h_geocode` in Utah), and the Utah OD table built by `combine_in_out_county_data` never lists those destinations. Decide whether the scope should be "work tracts in other states' aux files whose `h_geocode` is in-state", which needs those states' OD/aux files.
 - `run-synthesis-by-state.py` `load_tract_id_work` reads the JSON with `pd.read_json` default dtype inference and then `.astype(str)`, which strips the leading zero from GEOIDs in states 01–09 (`"01001020100"` → `"1001020100"`). Utah GEOIDs are unaffected, but AZ (04) and CO (08) destination tracts would turn into `wNotFound`. Needs `dtype={'GEOID': str}` there (not changed here: outside Agent C's files).
 - `WP_PROBA` uses the global `numpy.random` inside `src.tools.wp_proba`; after Agent A's rng refactor this driver should pass the run's `Generator` instead of `--seed`.
-- `combine_in_out_county_data` (which produces the OD input) still globs the cwd-relative `data/raw-data/work_commute/...` instead of `RAW_DATA_DIR`. Not changed here.
+- `combine_in_out_county_data` (which produces the OD input) still globs the cwd-relative `../data-pre-reorganization` instead of `RAW_DATA_DIR`. Not changed here.
 
 ## Agent D: education capacity
 
@@ -87,7 +95,7 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 
 ## Agent B: file handoff
 
-- `src/population_io.py` (new) `population_source`/`read_population`/`load_population`: one reader for the synthesis output `<state>/<run>_population.gpkg` (layer from `src.tools.__collect_results__`: `id`, `age`, `gender`, `assigned`, `hhold`, `htype`, `wp`, `urban`, `long`, `lat`, point `geometry`, CRS EPSG:4269). County runs read `<state>_c<counties>_population.gpkg`, else the full-state file filtered to the counties by the home-tract prefix of `id`. `id` is kept as text and `age`/`htype`/`assigned` are coerced to numbers if a reader returns text. A missing file raises `FileNotFoundError` (naming a legacy `.pickle` if one is present) instead of loading it. Replaces the `.pickle` handoff; no change to population content.
+- `../src/load_synthesis_output.py` (new) `population_source`/`read_population`/`load_population`: one reader for the synthesis output `<state>/<run>_population.gpkg` (layer from `src.tools.__collect_results__`: `id`, `age`, `gender`, `assigned`, `hhold`, `htype`, `wp`, `urban`, `long`, `lat`, point `geometry`, CRS EPSG:4269). County runs read `<state>_c<counties>_population.gpkg`, else the full-state file filtered to the counties by the home-tract prefix of `id`. `id` is kept as text and `age`/`htype`/`assigned` are coerced to numbers if a reader returns text. A missing file raises `FileNotFoundError` (naming a legacy `.pickle` if one is present) instead of loading it. Replaces the `.pickle` handoff; no change to population content.
 - `code/2-social-networks/create_edu_hhold_get_work_pop.py` `create_by_state`: reads the synthesis GeoPackage (attribute columns `id`, `age`, `hhold`, `wp` only, no geometry) via `load_population` instead of `<state>_population.pickle`, which synthesis never writes; keeps the county-run fallback. Also creates `1-us/` before writing the work population (previously failed if absent). Network contents unchanged for the same population.
 - `code/3-validation/validation_population.py`, `validation_hhold.py`, `validation_tract_avg_hhold.py`: new `--state`/`--counties` (default: all 51 areas as before). Read `<run>_population.gpkg` (county fallback as above), the error log of the run actually read (`<source>_error_log.csv`), restrict the census tracts to `--counties`, and write `<state>/<run>_*` / `1-us/<us_run>_*` outputs (`us_` names unchanged for the default). `validation_tract_avg_hhold.py` no longer processes only the first two states (`state_codes[:2]`), and skips a state that fails instead of crashing with an undefined variable.
 - `src/after_validation_functions.py` `read_error_tracts` (new, used by all three validation scripts and `load_census_data`): reads the error-log `tract` column as text. Previously `pd.read_csv` parsed GEOIDs as integers, so `GEOID.isin(error_tract_id)` never matched and failed tracts were never removed from the "good census" columns. Effect: `Good_Census_*`/`Goodcensus_hhold` now exclude failed tracts as documented. `load_census_data` gains optional `state_code`/`counties`; new `read_run_census` does the county restriction.
@@ -147,7 +155,7 @@ One line per behavioural change: file, function, what changed, why, effect on ou
 ## Commute data
 
 - `src/preprocess_data.py` `download_lodes_2020_data`: certificates verified (was `verify_ssl=False`) and a failed download raises (was logged and skipped). Why: a skipped `aux`/`main` file silently dropped commuters. Effect: none on outputs when downloads succeed.
-- `src/preprocess_data.py` `combine_in_out_county_data`: reads the 2020 `main` and `aux` files from `RAW_DATA_DIR` (was a cwd-relative glob `data/raw-data/work_commute/<st>_*_JT00_*.gz`, which also matched other years) and fails if either is missing. Geocodes are read as text and zero-padded, so `work`/`home` are 11-digit tracts for every state; the 10-digit branch for states 01–09 is gone. Why: reading geocodes as numbers dropped leading zeros, so states 01–09 had 10-digit OD tract IDs that never matched the 11-digit census GEOIDs. Effect: Utah unchanged (245,983 tract pairs); states 01–09 now match their tracts.
+- `src/preprocess_data.py` `combine_in_out_county_data`: reads the 2020 `main` and `aux` files from `RAW_DATA_DIR` (was a cwd-relative glob `../data-pre-reorganization`, which also matched other years) and fails if either is missing. Geocodes are read as text and zero-padded, so `work`/`home` are 11-digit tracts for every state; the 10-digit branch for states 01–09 is gone. Why: reading geocodes as numbers dropped leading zeros, so states 01–09 had 10-digit OD tract IDs that never matched the 11-digit census GEOIDs. Effect: Utah unchanged (245,983 tract pairs); states 01–09 now match their tracts.
 - `src/preprocess_data.py` `combine_in_out_county_data`: also writes the OD table to `processed-data/od/`, where `run-synthesis-by-state.py` reads it. Why: the OD was only written to `interim-data/od/`, leaving the synthesis input to be copied by hand. Effect: no change to values.
 - `code/0-preprocess/prepare-commute-data/process_lodes8.py`: `--state` (default `ut`, `all` for every state) and `--skip-download`; was a loop over all states.
 - `src/preprocess_data.py` `read_cbp_counties`, `code/0-preprocess/prepare-commute-data/process_cbp.py`: reads the paper's `CB2000CBP.zip` (pipe-delimited, streamed from the zip) by default, or a data.census.gov CSV via `--input`; `--download` fetches the zip with certificates verified. Keeps county geographies only (`GEO_ID` `0500000US…`) and the `NAICS2017` 00, `LFO` 001, `EMPSZES` 001 row, and raises if a county has more than one. Why: the old script only read a data.census.gov export and took the last five characters of any `GEO_ID`, so ZIP-code and metro rows could pose as counties. Effect: 3,244 counties, one row each; Utah 86,361 establishments, matching the CBP state total for county rows.
@@ -180,7 +188,7 @@ Full chain for `--state ut --counties 035 --seed 42`, run twice from the same in
 
 ## Runtime measurement and optimization
 
-- [Timing reports](../src/timing.py): synthesis writes `*_timing.csv` and `*_timing_summary.csv` with stage durations and separate summaries for successful and failed tracts. Adds diagnostic outputs without changing population assignments.
+- [Timing reports](../code/1-population-synthesis/timing.py): synthesis writes `*_timing.csv` and `*_timing_summary.csv` with stage durations and separate summaries for successful and failed tracts. Adds diagnostic outputs without changing population assignments.
 - [Synthesis driver](../code/1-population-synthesis/run-synthesis-by-state.py): workplace weights are loaded once per run and shared across states.
 - Household assignment uses arrays for member selection, grouped membership writes, and reusable leftover choices. Education assignment reuses nearby eligible-site lists and distance rankings for shared homes. Urban classification checks each distinct home once. Assignment rules and random draw order are preserved. See [optimization notes](optimization.md) for details.
 - Validation: assignments and random states matched on three real tracts; output files were byte-identical for two synthetic runs. The latest changes made household assignment 3.8× faster and education assignment 1.6× faster in the sample, projecting a 25–40 minute full rerun against the 121-minute baseline. This is a sample-based estimate; the dated 32-minute integration result above is a separate historical measurement.

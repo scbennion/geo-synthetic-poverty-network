@@ -1,7 +1,7 @@
 """Add WP_CNT (workplaces per tract) to the DP1 tracts: processed-data/census/<st>-tracts-demo-work.shp.zip.
 
 Inputs: interim-data/cbp/workplace_cbp.csv (process_cbp.py), interim-data/od/<st>-tract-od-2020.csv
-(process_lodes8.py) and the tracts from prepare-census/process_census_shp.py: the per-state
+(process_lodes8.py) and the tracts from prepare_census/process_census_shp.py: the per-state
 interim-data/census/<st>_census_demo_4326.shp.zip if present, else the all-states
 census_demo_4326.shp.zip. process_census_shp.py --state <st> runs this same step itself
 when the commute inputs exist.
@@ -14,8 +14,9 @@ import geopandas as gpd
 
 from loguru import logger
 from tqdm import tqdm
-from pipeline.preprocess import census_prep as cp
-from src.cli import resolve_state_codes
+from prepare_census import census_prep as cp
+from prepare_commute import cbp as cbp_data, lodes, workplace_counts
+from src.command_line_options import resolve_state_codes
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, state_dict
 
 
@@ -29,9 +30,9 @@ def main(argv=None):
         parser.error(str(e))
 
     # 1 Read Data
-    cbp_path = cp.cbp_path(INTERIM_DATA_DIR)
+    cbp_path = cbp_data.cbp_path(INTERIM_DATA_DIR)
     logger.info(f"Reading county company data from {cbp_path}")
-    cbp = cp.read_cbp(cbp_path)
+    cbp = cbp_data.read_cbp(cbp_path)
     logger.info(cbp.head())
 
     national_census_path = os.path.join(INTERIM_DATA_DIR, "census/census_demo_4326.shp.zip")
@@ -56,8 +57,8 @@ def main(argv=None):
                 national_census = gpd.read_file(national_census_path)
             state_census = national_census[national_census['STATEFP'] == code].copy()
 
-        od_df = pd.read_csv(cp.od_path(code, INTERIM_DATA_DIR)).reset_index(drop=True)
-        state_census, error_tract = cp.add_workplace_counts(state_census, od_df, cbp, code)
+        od_df = pd.read_csv(lodes.od_path(code, INTERIM_DATA_DIR)).reset_index(drop=True)
+        state_census, error_tract = workplace_counts.add_workplace_counts(state_census, od_df, cbp, code)
 
         logger.info(f"Saving census tract to {full_census_path}")
         cp.write_shp_zip(state_census, full_census_path)

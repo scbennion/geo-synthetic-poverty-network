@@ -42,14 +42,16 @@ flowchart LR
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt pytest
-python -m pip install -e .                 # install the shared support and pipeline stages
+python -m pip install -e .                 # install the shared src helpers
+# Run from the repository root; repeat this export in each new terminal session.
+export PYTHONPATH="$PWD/code/0-preprocess${PYTHONPATH:+:$PYTHONPATH}"
 python -m pytest                           # about 1.5 minutes
 ```
 
 The local-package entry in `requirements.txt` is commented out, so install the project explicitly
-with the separate editable-install command above. Repeat that command after changing package
-locations. It makes the numbered stage folders importable as `pipeline.preprocess`,
-`pipeline.population`, and the other stage names described in [architecture](architecture.md).
+with the separate editable-install command above. Only `src` is installed. Stage commands
+run directly from the checkout and import their neighboring modules. The `PYTHONPATH` export
+lets preprocessing subfolders share helpers without renaming packages; see [architecture](architecture.md).
 Dependency completeness and environment locking remain separate work; installing this project
 does not install or pin the full scientific environment.
 
@@ -70,27 +72,27 @@ later steps read earlier outputs.
 
 ```bash
 # Census: population tables (DP1), tract boundaries, urban areas
-python code/0-preprocess/prepare-census/download_census_inputs.py --state ut
+python code/0-preprocess/prepare_census/download_census_inputs.py --state ut
 
 # Commuting: LODES home-to-work flows, then county business counts (all states, one file)
-python code/0-preprocess/prepare-commute-data/process_lodes8.py --state ut
-python code/0-preprocess/prepare-commute-data/process_cbp.py --download
+python code/0-preprocess/prepare_commute/process_lodes8.py --state ut
+python code/0-preprocess/prepare_commute/process_cbp.py --download
 
 # Census tracts joined with the commuting inputs (needs the two steps above)
-python code/0-preprocess/prepare-census/process_census_shp.py --state ut
+python code/0-preprocess/prepare_census/process_census_shp.py --state ut
 
 # Workplaces per tract and their size weights
-python code/0-preprocess/prepare-commute-data/build_tract_workplace_json.py --state ut --seed 42
+python code/0-preprocess/prepare_commute/build_tract_workplace_json.py --state ut --seed 42
 
 # Roads, then cleaning (replaces the original GRASS step)
-python code/0-preprocess/prepare-road/download_process_roads.py --state ut
-python code/0-preprocess/prepare-road/clean_roads.py --state ut
+python code/0-preprocess/prepare_roads/download_process_roads.py --state ut
+python code/0-preprocess/prepare_roads/clean_roads.py --state ut
 
 # Schools and daycares (EPA/ORNL 2015 layer)
-python code/0-preprocess/prepare-edu/build_edu_sites.py --state ut --download
+python code/0-preprocess/prepare_education/build_edu_sites.py --state ut --download
 ```
 
-What comes out, under `data/processed-data/`: census tracts, the commuting table, the cleaned
+What comes out, under `../data-pre-reorganization`: census tracts, the commuting table, the cleaned
 roads, school and daycare sites, urban areas and `us_tract_number_work.json`.
 [Input paths](input-data.md#input-paths) lists the exact file names;
 [input data](input-data.md) explains the sources and transformations.
@@ -107,7 +109,7 @@ caffeinate -i python code/1-population-synthesis/run-synthesis-by-state.py --sta
 ```
 
 Add `--dry-run` first to list the tracts it would process. Outputs go to
-`data/results-data/ut/` and are named after the run: `ut_c035` for this county, `ut` for the
+`../data-pre-reorganization` and are named after the run: `ut_c035` for this county, `ut` for the
 whole state.
 
 - `ut_c035_population.gpkg`: one row per person with age, sex, household and home point.
@@ -142,8 +144,8 @@ python code/2-social-networks/create_work_networks.py --state ut --counties 035 
 ```
 
 The first writes the household, school and daycare networks to
-`data/results-data/ut/social_networks/`. The second writes the worker table and work network to
-`data/results-data/1-us/`. A network step skips any file that already exists, so delete old
+`../data-pre-reorganization`. The second writes the worker table and work network to
+`../data-pre-reorganization`. A network step skips any file that already exists, so delete old
 network files before rebuilding them.
 
 ## 3. Validate
@@ -169,7 +171,7 @@ on all 18 files.
 
 ## 4. Export the run for Neo4j
 
-Before exporting, confirm that `data/results-data/ut/ut_c035_population.csv` exists and matches
+Before exporting, confirm that `../data-pre-reorganization` exists and matches
 the run. The current exporter reads this CSV directly, while synthesis only writes it in its
 missing-ID/`wp` cleanup branch. A GeoPackage alone is sufficient for contacts/validation but
 does not satisfy the exporter. This [handoff gap](input-data.md#stage-handoffs) remains
@@ -179,7 +181,7 @@ for later code work; no automatic conversion is implemented here.
 python code/4-knowledge-graph/export_neo4j_csv.py --state ut --counties 035 --seed 42
 ```
 
-This writes one CSV per node label and relationship type to `data/neo4j-import/ut_c035/`, plus
+This writes one CSV per node label and relationship type to `../data-pre-reorganization`, plus
 `import.args`, the argument file for the bulk importer. `--seed` is only recorded on the graph's
 `Run` node. Pass the seed the run actually used.
 

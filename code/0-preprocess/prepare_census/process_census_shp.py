@@ -1,7 +1,7 @@
 """Join 2020 DP1 counts to TIGER tracts and prepare the urban-area file for one state.
 
-    python code/0-preprocess/prepare-census/download_census_inputs.py --state ut
-    python code/0-preprocess/prepare-census/process_census_shp.py --state ut
+    python code/0-preprocess/prepare_census/download_census_inputs.py --state ut
+    python code/0-preprocess/prepare_census/process_census_shp.py --state ut
 
 Writes (DATA_DIR from env GSPN_DATA_DIR, see src/settings.py):
     interim-data/census/ut_census_demo.shp.zip        tracts + DP1, EPSG:4269
@@ -21,8 +21,9 @@ import geopandas as gpd
 import pandas as pd
 from loguru import logger
 
-from pipeline.preprocess import census_prep as cp
-from src.cli import resolve_state_codes
+from prepare_census import census_prep as cp
+from prepare_commute import cbp as cbp_data, lodes, workplace_counts
+from src.command_line_options import resolve_state_codes
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR, state_codes, state_dict
 
 
@@ -73,15 +74,15 @@ def process_state(state_code, demo_df, boundary, skip_work=False,
 
     if skip_work:
         return urban_ok
-    od_file, cbp_file = cp.od_path(state_code, interim_data_path), cp.cbp_path(interim_data_path)
+    od_file, cbp_file = lodes.od_path(state_code, interim_data_path), cbp_data.cbp_path(interim_data_path)
     missing = [p for p in (od_file, cbp_file) if not os.path.exists(p)]
     if missing:
         logger.error(f"{abbr}: {cp.tracts_demo_work_path(state_code, processed_data_path)} not written; "
                      f"WP_CNT needs commute inputs that are missing: {missing} "
-                     f"(prepare-commute-data/process_lodes8.py, process_cbp.py)")
+                     f"(prepare_commute/process_lodes8.py, process_cbp.py)")
         return False
     od_df = pd.read_csv(od_file).reset_index(drop=True)
-    work, error_tract = cp.add_workplace_counts(state_census, od_df, cp.read_cbp(cbp_file), state_code)
+    work, error_tract = workplace_counts.add_workplace_counts(state_census, od_df, cbp_data.read_cbp(cbp_file), state_code)
     cp.write_shp_zip(work, cp.tracts_demo_work_path(state_code, processed_data_path))
     error_dir = os.path.join(processed_data_path, 'workplaces_error')
     os.makedirs(error_dir, exist_ok=True)

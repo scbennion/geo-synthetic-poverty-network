@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pipeline.population.create_individuals import create_individuals
+from create_individuals import create_individuals
 
 
 @pytest.fixture

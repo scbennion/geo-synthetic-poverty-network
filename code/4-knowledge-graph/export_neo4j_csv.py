@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 from loguru import logger
-from src.cli import add_geography_args, resolve_geography, run_name
+from src.command_line_options import add_geography_args, resolve_geography, run_name
 from src.settings import DATA_DIR, PROJECT_ROOT, RESULTS_DIR, state_dict
 
 SETTINGS = ('household', 'school', 'daycare', 'work')

@@ -2,21 +2,21 @@
 
 Pure-Python replacement for the former GRASS GIS script (clean_raod_with_grass.py):
 snap vertices (10 m), split at crossings, drop duplicate geometries and label weakly
-connected components; see pipeline.preprocess.road_cleaning for the exact steps and differences.
+connected components; see prepare_roads.road_cleaning for the exact steps and differences.
 
 Reads  INTERIM_DATA_DIR/road/<STATE>_road.shp.zip   (from download_process_roads.py)
 Writes PROCESSED_DATA_DIR/road/<STATE>_road_cleaned.shp.zip
 (``<STATE>_c<counties>_...`` with --counties; the synthesis driver reads the full-state name.)
 
-    python code/0-preprocess/prepare-road/clean_roads.py --state ut [--counties 035] [--overwrite]
+    python code/0-preprocess/prepare_roads/clean_roads.py --state ut [--counties 035] [--overwrite]
 """
 import argparse
 import timeit
 
 from loguru import logger
 
-from src.cli import add_geography_args, resolve_geography, run_name
-from pipeline.preprocess.preprocess_data import process_interim_road_data
+from src.command_line_options import add_geography_args, resolve_geography, run_name
+from prepare_roads.road_inputs import process_interim_road_data
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, state_dict
 
 

@@ -10,11 +10,12 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-from pipeline.preprocess import census_prep as cp
-from pipeline.population.create_individuals import create_individuals
+from prepare_census import census_prep as cp
+from prepare_commute import cbp as cbp_data, lodes
+from create_individuals import create_individuals
 
 ROOT = Path(__file__).resolve().parent.parent
-PROCESS = ROOT / 'code' / '0-preprocess' / 'prepare-census' / 'process_census_shp.py'
+PROCESS = ROOT / 'code' / '0-preprocess' / 'prepare_census' / 'process_census_shp.py'
 
 UT_TRACTS = ['49035100100', '49035100200', '49049000100']
 ID_TRACT = '16001000100'  # another state, must be filtered out
@@ -85,17 +86,17 @@ def _write_fixture(data_dir, commute=True):
                              crs='EPSG:4269')
     _write_zip(urban, Path(cp.urban_zip_path(str(raw))))
     if commute:
-        od = Path(cp.od_path('49', str(interim)))
+        od = Path(lodes.od_path('49', str(interim)))
         od.parent.mkdir(parents=True)
         pd.DataFrame({'work': UT_TRACTS, 'home': UT_TRACTS, 'S000': [30, 10, 20]}).to_csv(od)
-        cbp = Path(cp.cbp_path(str(interim)))
+        cbp = Path(cbp_data.cbp_path(str(interim)))
         cbp.parent.mkdir(parents=True)
         pd.DataFrame({'county': ['49035', '49049'], 'NAME': ['Salt Lake', 'Utah'], 'ESTAB': [8, 5]}).to_csv(cbp)
 
 
 def _run(data_dir, *args):
     env = dict(os.environ, GSPN_DATA_DIR=str(data_dir),
-               PYTHONPATH=os.pathsep.join([str(ROOT), os.environ.get('PYTHONPATH', '')]))
+               PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
     return subprocess.run([sys.executable, str(PROCESS), *args], cwd=PROCESS.parent, env=env,
                           capture_output=True, text=True)
 
@@ -143,7 +144,7 @@ def test_process_state_writes_both_files(tmp_path):
     people = create_individuals(tract)
     assert len(people) == sum(_dp1_value(c, 0) for c in MALE_GROUPS + FEMALE_GROUPS)
     assert (people.gender == 'm').sum() == sum(_dp1_value(c, 0) for c in MALE_GROUPS)
-    # pipeline.validation.after_validation_functions indexes the frame with GEOID as a column
+    # after_validation_functions indexes the frame with GEOID as a column
     assert list(work.iloc[:, 14:51].drop('DP1_0049C', axis=1).columns) == MALE_GROUPS + FEMALE_GROUPS
 
     urban = gpd.read_file(cp.urban_gpkg_path('49', str(tmp_path / 'processed-data')))

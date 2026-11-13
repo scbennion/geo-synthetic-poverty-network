@@ -4,7 +4,7 @@ workplace metadata that run-synthesis-by-state.py reads as JSON lines.
 
 Scope: the tracts of --state (optionally only --counties), plus any out-of-state
 work tracts that appear in that state's LODES `aux` file. WP_CNT comes from
-pipeline.preprocess.preprocess_data.get_number_of_wp, i.e. floor(ESTAB_c * J_t / J_c) with J_t and
+prepare_commute.workplace_counts.get_number_of_wp, i.e. floor(ESTAB_c * J_t / J_c) with J_t and
 J_c taken from the work side of the tract's own state's OD table; WP_PROBA from
 the local wp_proba helper.
 
@@ -26,11 +26,11 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from src.cli import add_geography_args, resolve_geography, run_name
-from pipeline.preprocess.preprocess_data import get_number_of_wp, tract_and_county_jobs, tract_geoid
+from src.command_line_options import add_geography_args, resolve_geography, run_name
+from prepare_commute.workplace_counts import get_number_of_wp, tract_and_county_jobs, tract_geoid
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR, state_dict
 from sklearn.preprocessing import normalize
-from pipeline.preprocess.census_prep import census_demo_path
+from prepare_census.census_prep import census_demo_path
 
 
 

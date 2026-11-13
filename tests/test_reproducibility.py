@@ -105,7 +105,7 @@ def _write_fixture(data_dir):
 
 def _run(script, data_dir, *args):
     env = dict(os.environ, GSPN_DATA_DIR=str(data_dir),
-               PYTHONPATH=os.pathsep.join([str(ROOT), os.environ.get('PYTHONPATH', '')]))
+               PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
     env.pop('OGR_CURRENT_DATE', None)  # the synthesis driver must pin GeoPackage timestamps itself
     result = subprocess.run([sys.executable, str(script), '--state', 'ut', '--counties', '035', *args],
                             cwd=script.parent, env=env, capture_output=True, text=True, timeout=120)
@@ -180,7 +180,7 @@ def test_different_seed_differs(runs):
 
 def test_network_seed_alone_changes_ties():
     """With the population fixed, only the NWS draw depends on the network seed."""
-    from pipeline.networks.create_social_networks import create_network
+    from create_social_networks import create_network
     people = pd.DataFrame({'wp': ['w1'] * 30}, index=[f'p{i}' for i in range(30)])
     g1 = create_network(people, 'Work', seed=1)
     g2 = create_network(people, 'Work', seed=1)
@@ -193,7 +193,7 @@ def test_network_seed_alone_changes_ties():
 
 def test_unseeded_steps_keep_global_fallback():
     """Callers that pass no rng still work (legacy global np.random / fixed shuffle)."""
-    from pipeline.population.assign_workplace import generate_workplace_id
+    from assign_workplace import generate_workplace_id
     work = pd.DataFrame({'WP_CNT': [3], 'WP_PROBA': [np.array([0.2, 0.3, 0.5])]}, index=['49035000100'])
     assert generate_workplace_id('49035000100', work).startswith('49035000100w')
     rng_a, rng_b = np.random.default_rng(5), np.random.default_rng(5)
@@ -202,7 +202,7 @@ def test_unseeded_steps_keep_global_fallback():
 
 def test_wp_proba_seeded():
     import runpy
-    wp_proba = runpy.run_path(str(ROOT / "code/0-preprocess/prepare-commute-data/build_tract_workplace_json.py"))["wp_proba"]
+    wp_proba = runpy.run_path(str(ROOT / "code/0-preprocess/prepare_commute/build_tract_workplace_json.py"))["wp_proba"]
     a = wp_proba(6, np.random.default_rng(3))
     assert np.array_equal(a, wp_proba(6, np.random.default_rng(3)))
     assert not np.array_equal(a, wp_proba(6, np.random.default_rng(4)))

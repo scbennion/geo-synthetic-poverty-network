@@ -7,7 +7,7 @@ import os
 import matplotlib.pyplot as plt
 from loguru import logger
 
-from src.cli import in_counties
+from src.command_line_options import in_counties
 
 
 #Load data

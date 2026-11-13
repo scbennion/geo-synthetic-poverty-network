@@ -2,7 +2,7 @@
 
 Real synthesis inputs are not in the repository, so the population GeoPackage is
 built here with the same columns, id formats and CRS the synthesis driver writes
-(it goes through ``pipeline.population.results.collect_results`` and ``to_file(..., driver='GPKG')``
+(it goes through ``results.collect_results`` and ``to_file(..., driver='GPKG')``
 exactly as ``run-synthesis-by-state.py`` does). The network and validation drivers
 are then run as subprocesses against it with ``GSPN_DATA_DIR`` pointing at tmp.
 """
@@ -17,9 +17,9 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point, box
 
-from pipeline.networks.create_social_networks import wp_kind
-from src.population_io import population_source, read_population
-from pipeline.population.results import collect_results
+from create_social_networks import wp_kind
+from src.load_synthesis_output import population_source, read_population
+from results import collect_results
 
 ROOT = Path(__file__).resolve().parent.parent
 NETWORKS = ROOT / 'code' / '2-social-networks'
@@ -112,7 +112,7 @@ def data_dir(tmp_path):
 
 
 def _run(script, data_dir, *args):
-    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), PYTHONPATH=str(ROOT), MPLBACKEND='Agg')
+    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]), MPLBACKEND='Agg')
     result = subprocess.run([sys.executable, str(script), *args], cwd=script.parent, env=env,
                             capture_output=True, text=True, timeout=600)
     assert result.returncode == 0, result.stderr[-3000:]
@@ -257,9 +257,9 @@ def test_external_validation_reads_gpkg(data_dir):
     assert summary['all'].tolist() == [2]
 
     # PUMA cosine check: the synthetic aggregation step (PUMS microdata are not in the repo)
-    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), PYTHONPATH=str(ROOT))
+    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
     result = subprocess.run([sys.executable, '-c', COSINE_AGG, str(VALIDATION / 'validation_external_cosine.py'),
-                             *TRACTS], env=env, capture_output=True, text=True, timeout=300)
+                             *TRACTS], cwd=VALIDATION, env=env, capture_output=True, text=True, timeout=300)
     assert result.returncode == 0, result.stderr[-3000:]
     assert result.stdout.split('\n')[-2] == f"['4900001'] {36 * PER_GROUP * 2}"
 

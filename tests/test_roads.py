@@ -15,14 +15,15 @@ import pandas as pd
 import pytest
 from shapely.geometry import LineString, box
 
-import pipeline.preprocess.preprocess_data as pp
-from pipeline.preprocess.road_cleaning import (clean_road_network, drop_duplicate_lines, label_components,
+import _downloads as downloads
+from prepare_roads import road_inputs as pp
+from prepare_roads.road_cleaning import (clean_road_network, drop_duplicate_lines, label_components,
                              node_lines, snap_vertices)
-from pipeline.population.create_space import (HOME_SPACING_M, OUTPUT_CRS, PLACEMENT_CRS, WORK_SPACING_M,
+from create_space import (HOME_SPACING_M, OUTPUT_CRS, PLACEMENT_CRS, WORK_SPACING_M,
                               __create_home_location__, __create_work_location__)
 
 REPO = Path(__file__).resolve().parent.parent
-ROAD_SCRIPTS = REPO / 'code' / '0-preprocess' / 'prepare-road'
+ROAD_SCRIPTS = REPO / 'code' / '0-preprocess' / 'prepare_roads'
 X0, Y0 = 424000.0, 4512000.0   # roughly downtown Salt Lake City in UTM 12N
 TRACT_M = 1000.0
 
@@ -201,9 +202,9 @@ def test_download_file_verifies_tls(tmp_path, monkeypatch):
     def fake_get(url, stream, verify, timeout):
         seen['verify'] = verify
         return Resp()
-    monkeypatch.setattr(pp.requests, 'get', fake_get)
+    monkeypatch.setattr(downloads.requests, 'get', fake_get)
     target = tmp_path / 'f.zip'
-    assert pp.download_file('https://example.invalid/f.zip', str(target))
+    assert downloads.download_file('https://example.invalid/f.zip', str(target))
     assert seen['verify'] is True and target.read_bytes() == b'data'
 
 
@@ -216,7 +217,7 @@ def test_road_scripts_import_without_grass(script):
 
 
 def test_no_tls_suppression_left_in_road_path():
-    for path in [REPO / 'code' / '0-preprocess' / 'preprocess_data.py', *ROAD_SCRIPTS.glob('*.py')]:
+    for path in [REPO / 'code' / '0-preprocess' / '_downloads.py', *ROAD_SCRIPTS.glob('*.py')]:
         text = path.read_text()
         assert 'InsecureRequestWarning' not in text
         assert 'GRASSBIN' not in text

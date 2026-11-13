@@ -1,6 +1,6 @@
 """Census tract inputs for one state: DP1 demographic profile, TIGER tracts, urban areas.
 
-Order of the census preprocessing steps (see code/0-preprocess/prepare-census/):
+Order of the census preprocessing steps (see code/0-preprocess/prepare_census/):
 
 1. ``download_census_inputs.py --state ut`` fetches, into ``RAW_DATA_DIR``:
    - ``demographic-profile-20/DECENNIALDP2020.DP1-ut-tracts.csv``: 2020 Demographic
@@ -16,7 +16,7 @@ Order of the census preprocessing steps (see code/0-preprocess/prepare-census/):
    If the commute inputs exist it also writes
    ``PROCESSED_DATA_DIR/census/ut-tracts-demo-work.shp.zip``.
 3. The ``-work`` file adds ``WP_CNT`` (workplaces per tract), which
-   ``pipeline.population.create_space.__create_work_location__`` needs. It requires
+   ``create_space.__create_work_location__`` needs. It requires
    ``INTERIM_DATA_DIR/cbp/workplace_cbp.csv`` (``process_cbp.py``) and
    ``INTERIM_DATA_DIR/od/ut-tract-od-2020.csv`` (``process_lodes8.py``).
 
@@ -103,15 +103,6 @@ def tracts_demo_work_path(state_code, processed_data_path=None):
 def urban_gpkg_path(state_code, processed_data_path=None):
     return os.path.join(processed_data_path or PROCESSED_DATA_DIR, 'urban',
                         f'{state_dict[state_code].upper()}_urban.gpkg')
-
-
-def od_path(state_code, interim_data_path=None):
-    abbr = state_dict[state_code].lower()
-    return os.path.join(interim_data_path or INTERIM_DATA_DIR, 'od', f'{abbr}-tract-od-2020.csv')
-
-
-def cbp_path(interim_data_path=None):
-    return os.path.join(interim_data_path or INTERIM_DATA_DIR, 'cbp', 'workplace_cbp.csv')
 
 
 # ---------------------------------------------------------------- downloads
@@ -227,22 +218,6 @@ def state_urban_areas(urban, state_tracts, crs=TARGET_CRS):
     area = tracts.geometry.union_all()
     selected = urban[urban.geometry.intersects(area)]
     return selected.to_crs(crs).reset_index(drop=True)
-
-
-def add_workplace_counts(state_census, od_df, cbp, state_code):
-    """Adds WP_CNT using get_number_of_wp; returns (gdf, error_tracts). Same as add_tract_workplaces.py."""
-    from pipeline.preprocess.preprocess_data import get_number_of_wp
-    state_census = state_census.copy()
-    error_tract = []
-    state_census['WP_CNT'] = state_census.apply(get_number_of_wp, args=(od_df, cbp, state_code, error_tract),
-                                                axis=1)
-    return state_census, error_tract
-
-
-def read_cbp(path):
-    cbp = pd.read_csv(path).iloc[:, 1:]
-    cbp['county'] = cbp['county'].astype(str)
-    return cbp
 
 
 def write_shp_zip(gdf, path):

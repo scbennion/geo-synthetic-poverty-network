@@ -3,7 +3,7 @@ import networkx as nx
 import pandas as pd
 import pytest
 
-from pipeline.networks.create_social_networks import create_network, create_networks_types, to_csv
+from create_social_networks import create_network, create_networks_types, to_csv
 
 
 @pytest.mark.parametrize('size', [0, 1, 5])

@@ -4,8 +4,8 @@ import pytest
 from loguru import logger
 from shapely.geometry import Point, box
 
-import pipeline.population.assign_education_site as aes
-from pipeline.population.assign_education_site import EducationSites, __assign_education_site__
+import assign_education_site as aes
+from assign_education_site import EducationSites, __assign_education_site__
 
 CRS = 'EPSG:4269'
 SLC = (-111.9, 40.7)

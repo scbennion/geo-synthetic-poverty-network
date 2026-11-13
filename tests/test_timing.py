@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.timing import RunTiming
+from timing import RunTiming
 
 
 def test_averages_and_failed_tracts_are_separate(tmp_path):

@@ -11,11 +11,11 @@ warnings.simplefilter('ignore', InsecureRequestWarning)
 
 from loguru import logger
 from src.settings import state_codes, state_dict, RAW_DATA_DIR, RESULTS_DIR
-from pipeline.validation.external_validation import (read_pums_file,get_aggregate_spop_data,
+from external_validation import (read_pums_file,get_aggregate_spop_data,
                                      get_aggregate_pums20_data, read_clean_pums_tract_relationship,
                                      get_cosine_similarity)
-from src.cli import add_geography_args, resolve_geography
-from src.population_io import load_population
+from src.command_line_options import add_geography_args, resolve_geography
+from src.load_synthesis_output import load_population
 
 def get_us_aggregate_spop_data(pums_id_tract, run_state_codes=state_codes, counties=None):
     ### Prepare Spop each state

@@ -14,15 +14,15 @@ Source (--source epa2015, the default and the one Jiang et al. 2024 cite, ref. 2
     daycare  <- DayCareCenters                  (no ENROLLMENT; POPULATION is used)
     not used:   CollegesUniversities, SupplementalColleges (school assignment covers ages 5-17 only)
 
-Output fields read by pipeline.population.assign_education_site:
+Output fields read by assign_education_site:
   eduID, geometry, LATITUDE, LONGITUDE, s_age, e_age, ENROLLMENT, count (=0).
   eduID is '<state FIPS>s<n>' for schools and '<state FIPS>d<n>' for daycare, because
-  pipeline.networks.create_social_networks.wp_kind classifies wp ids by the letter after the
+  create_social_networks.wp_kind classifies wp ids by the letter after the
   leading digits ('s' school, 'd' daycare, 'w' work, 'h' home).
   Extra provenance columns: SRC_LAYER, SRC_ID, NAME, LEVEL, ENROLLMENT_SRC, ENR_MISSING.
 
 Run:
-  python code/0-preprocess/prepare-edu/build_edu_sites.py --state ut [--download]
+  python code/0-preprocess/prepare_education/build_edu_sites.py --state ut [--download]
 Reads  RAW_DATA_DIR/edu/epa2015/ORNL_Education.zip (or --raw PATH: any OGR datasource with
        the layer names above, e.g. the extracted Education.gdb)
 Writes PROCESSED_DATA_DIR/edu/<state>_school_id.gpkg and <state>_daycare_id.gpkg
@@ -36,7 +36,7 @@ import pandas as pd
 import requests
 from loguru import logger
 
-from src.cli import resolve_state_codes
+from src.command_line_options import resolve_state_codes
 from src.settings import RAW_DATA_DIR, PROCESSED_DATA_DIR, state_dict
 
 EPA2015_URL = 'https://edg.epa.gov/data/Public/OEI/ORNL_Education/ORNL_Education.zip'

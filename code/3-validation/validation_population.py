@@ -8,9 +8,9 @@ from tqdm import tqdm
 from loguru import logger
 
 from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
-from pipeline.validation.after_validation_functions import verifiy_age_group, plot_ver_age_df, read_error_tracts, read_run_census
-from src.cli import add_geography_args, resolve_geography, run_name
-from src.population_io import population_source, read_population
+from after_validation_functions import verifiy_age_group, plot_ver_age_df, read_error_tracts, read_run_census
+from src.command_line_options import add_geography_args, resolve_geography, run_name
+from src.load_synthesis_output import population_source, read_population
 
 import warnings
 # Ignore all warnings
