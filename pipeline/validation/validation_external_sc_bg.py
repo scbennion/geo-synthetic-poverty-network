@@ -6,7 +6,7 @@ import geopandas as gpd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from bg_validate_functions import pop_to_geo_df, prepare_bg_spop_gdf
+from pipeline.validation.bg_validate_functions import pop_to_geo_df, prepare_bg_spop_gdf
 from src.settings import RAW_DATA_DIR, PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
 from loguru import logger
 from src.command_line_options import add_geography_args, resolve_geography, in_counties, run_name, us_run_name

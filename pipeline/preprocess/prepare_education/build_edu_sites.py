@@ -22,7 +22,7 @@ Output fields read by assign_education_site:
   Extra provenance columns: SRC_LAYER, SRC_ID, NAME, LEVEL, ENROLLMENT_SRC, ENR_MISSING.
 
 Run:
-  python code/0-preprocess/prepare_education/build_edu_sites.py --state ut [--download]
+  python -m pipeline.preprocess.prepare_education.build_edu_sites --state ut [--download]
 Reads  RAW_DATA_DIR/edu/epa2015/ORNL_Education.zip (or --raw PATH: any OGR datasource with
        the layer names above, e.g. the extracted Education.gdb)
 Writes PROCESSED_DATA_DIR/edu/<state>_school_id.gpkg and <state>_daycare_id.gpkg

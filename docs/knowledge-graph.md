@@ -33,7 +33,7 @@ contact networks between people. Each run goes into its own database, named afte
 
 ### Contacts are undirected
 
-The networks are undirected graphs (`nx.Graph` in `code/2-social-networks/create_social_networks.py`). The network
+The networks are undirected graphs (`nx.Graph` in `pipeline/social_networks/create_social_networks.py`). The network
 files list each pair twice only because each line is a person followed by all their contacts.
 So each contact is stored as **one** `CONTACT` relationship, pointing from the lower person ID
 to the higher. That direction means nothing.
@@ -61,7 +61,7 @@ MATCH ()-[c:CONTACT]->() RETURN c.setting, count(c);
 
 Household networks connect every member only for households of 5 or fewer people. Larger
 households (including group quarters) get a Newman–Watts–Strogatz small-world network instead,
-the same rule as schools and workplaces (`code/2-social-networks/create_social_networks.py` `create_edges`). So
+the same rule as schools and workplaces (`pipeline/social_networks/create_social_networks.py` `create_edges`). So
 `MEMBER_OF` alone does not give the household contacts.
 
 ### Coordinates
@@ -75,7 +75,7 @@ Use the [pipeline guide](pipeline.md#4-export-the-run-for-neo4j) for export, dat
 
 ## Tract summary layer
 
-The full graph is too big to draw. `code/4-knowledge-graph/tract_summary.cypher` adds a small
+The full graph is too big to draw. `pipeline/knowledge_graph/tract_summary.cypher` adds a small
 layer on top that shows a whole run at once, with tracts as nodes:
 
 ```

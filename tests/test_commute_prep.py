@@ -10,11 +10,11 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-import _downloads as downloads
-from prepare_commute import cbp as cbp_data, lodes
+import pipeline.preprocess._downloads as downloads
+from pipeline.preprocess.prepare_commute import cbp as cbp_data, lodes
 
 ROOT = Path(__file__).resolve().parent.parent
-PREP = ROOT / 'code' / '0-preprocess' / 'prepare_commute'
+PREP = ROOT / 'pipeline' / 'preprocess' / 'prepare_commute'
 
 # block-level LODES rows (w_geocode, h_geocode, S000). Two blocks in the same tract pair
 # must be summed; the aux row has an out-of-state (Idaho) home.
@@ -58,8 +58,10 @@ def _write_cbp_zip(path):
 
 
 def _run(script, data_dir, *args):
-    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
-    return subprocess.run([sys.executable, str(PREP / script), *args], cwd=PREP,
+    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir))
+    env.pop('PYTHONPATH', None)
+    module = f'pipeline.preprocess.prepare_commute.{Path(script).stem}'
+    return subprocess.run([sys.executable, '-m', module, *args], cwd=ROOT,
                           env=env, capture_output=True, text=True)
 
 

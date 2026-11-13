@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from loguru import logger
 
-from _downloads import download_file
+from pipeline.preprocess._downloads import download_file
 from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR, state_dict
 
 LODES_TYPES = ("main", "aux")

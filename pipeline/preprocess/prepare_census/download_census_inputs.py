@@ -1,6 +1,6 @@
 """Download the census inputs process_census_shp.py needs for one state.
 
-    python code/0-preprocess/prepare_census/download_census_inputs.py --state ut
+    python -m pipeline.preprocess.prepare_census.download_census_inputs --state ut
 
 Writes under RAW_DATA_DIR (DATA_DIR from env GSPN_DATA_DIR):
     demographic-profile-20/DECENNIALDP2020.DP1-ut-tracts.csv
@@ -21,7 +21,7 @@ import os
 
 from loguru import logger
 
-from prepare_census import census_prep as cp
+from pipeline.preprocess.prepare_census import census_prep as cp
 from src.command_line_options import resolve_state_codes
 from src.settings import RAW_DATA_DIR
 

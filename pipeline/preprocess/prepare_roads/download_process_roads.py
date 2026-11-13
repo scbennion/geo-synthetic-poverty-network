@@ -3,14 +3,14 @@
 Writes ``INTERIM_DATA_DIR/road/<STATE>_road.shp.zip`` (or ``<STATE>_c<counties>_road.shp.zip``
 with --counties). Next step: clean_roads.py.
 
-    python code/0-preprocess/prepare_roads/download_process_roads.py --state ut [--counties 035]
+    python -m pipeline.preprocess.prepare_roads.download_process_roads --state ut [--counties 035]
 """
 import argparse
 
 from loguru import logger
 
 from src.command_line_options import add_geography_args, resolve_geography, run_name
-from prepare_roads.road_inputs import download_and_prepare_road_data
+from pipeline.preprocess.prepare_roads.road_inputs import download_and_prepare_road_data
 from src.settings import INTERIM_DATA_DIR, RAW_DATA_DIR, state_dict
 
 

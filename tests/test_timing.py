@@ -1,10 +1,9 @@
 import csv
-import importlib.util
-from pathlib import Path
 
 import pytest
 
-from timing import RunTiming
+from pipeline.population_synthesis.timing import RunTiming
+from pipeline.population_synthesis import run_synthesis_by_state as driver
 
 
 def test_averages_and_failed_tracts_are_separate(tmp_path):
@@ -42,11 +41,6 @@ def test_exception_is_recorded_and_propagated():
 
 
 def test_failed_tract_records_stage_and_rollback(monkeypatch):
-    script = Path(__file__).resolve().parents[1] / 'code/1-population-synthesis/run-synthesis-by-state.py'
-    spec = importlib.util.spec_from_file_location('timed_synthesis', script)
-    driver = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(driver)
-
     class Sites:
         restored = False
 

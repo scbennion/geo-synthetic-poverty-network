@@ -5,7 +5,7 @@ City and stored in EPSG:4269 like TIGER/Line, so tests exercise the projections.
 
     python -m pytest tests/test_roads.py
 """
-import importlib.util
+import importlib
 import os
 from pathlib import Path
 
@@ -15,15 +15,15 @@ import pandas as pd
 import pytest
 from shapely.geometry import LineString, box
 
-import _downloads as downloads
-from prepare_roads import road_inputs as pp
-from prepare_roads.road_cleaning import (clean_road_network, drop_duplicate_lines, label_components,
+import pipeline.preprocess._downloads as downloads
+from pipeline.preprocess.prepare_roads import road_inputs as pp
+from pipeline.preprocess.prepare_roads.road_cleaning import (clean_road_network, drop_duplicate_lines, label_components,
                              node_lines, snap_vertices)
-from create_space import (HOME_SPACING_M, OUTPUT_CRS, PLACEMENT_CRS, WORK_SPACING_M,
+from pipeline.population_synthesis.create_space import (HOME_SPACING_M, OUTPUT_CRS, PLACEMENT_CRS, WORK_SPACING_M,
                               __create_home_location__, __create_work_location__)
 
 REPO = Path(__file__).resolve().parent.parent
-ROAD_SCRIPTS = REPO / 'code' / '0-preprocess' / 'prepare_roads'
+ROAD_SCRIPTS = REPO / 'pipeline' / 'preprocess' / 'prepare_roads'
 X0, Y0 = 424000.0, 4512000.0   # roughly downtown Salt Lake City in UTM 12N
 TRACT_M = 1000.0
 
@@ -210,14 +210,12 @@ def test_download_file_verifies_tls(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize('script', ['download_process_roads.py', 'clean_roads.py'])
 def test_road_scripts_import_without_grass(script):
-    spec = importlib.util.spec_from_file_location(script[:-3], ROAD_SCRIPTS / script)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)   # fails on a bad import name or a GRASS import
+    module = importlib.import_module(f'pipeline.preprocess.prepare_roads.{script[:-3]}')
     assert callable(module.main)
 
 
 def test_no_tls_suppression_left_in_road_path():
-    for path in [REPO / 'code' / '0-preprocess' / '_downloads.py', *ROAD_SCRIPTS.glob('*.py')]:
+    for path in [REPO / 'pipeline' / 'preprocess' / '_downloads.py', *ROAD_SCRIPTS.glob('*.py')]:
         text = path.read_text()
         assert 'InsecureRequestWarning' not in text
         assert 'GRASSBIN' not in text

@@ -13,10 +13,9 @@ from src.command_line_options import parse_counties, resolve_state_codes
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = sorted(
-    [f'src.{p.stem}' for p in (ROOT / 'src').glob('*.py') if p.stem != '__init__']
-    + [p.stem for stage in (ROOT / 'code').iterdir() if stage.is_dir()
-       for p in stage.glob('*.py') if p.stem.isidentifier()]
-    + [f'{p.parent.name}.{p.stem}' for p in (ROOT / 'code' / '0-preprocess').glob('*/*.py')]
+    '.'.join(p.relative_to(ROOT).with_suffix('').parts)
+    for package in ('src', 'pipeline') for p in (ROOT / package).rglob('*.py')
+    if p.stem != '__init__'
 )
 # needs a GRASS GIS install, which is not a Python package
 OPTIONAL = {'grass', 'grass_session'}
@@ -32,12 +31,12 @@ def test_module_imports(name):
         raise
 
 
-def test_wheel_includes_shared_modules(tmp_path):
-    """The wheel installs shared src helpers; numbered stages remain checkout scripts."""
+def test_wheel_includes_pipeline_and_shared_modules(tmp_path):
+    """Installed modules work outside the checkout, without stage path overrides."""
     root = Path(__file__).resolve().parents[1]
     project, wheels, installed = tmp_path / 'project', tmp_path / 'wheels', tmp_path / 'installed'
     project.mkdir()
-    for directory in ('src', 'code'):
+    for directory in ('src', 'pipeline'):
         shutil.copytree(root / directory, project / directory,
                         ignore=shutil.ignore_patterns('__pycache__'))
     for filename in ('pyproject.toml', 'LICENSE'):
@@ -48,16 +47,25 @@ def test_wheel_includes_shared_modules(tmp_path):
     ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
     with zipfile.ZipFile(next(wheels.glob('*.whl'))) as wheel:
-        assert all(name.startswith(('src/', 'geo_synthetic_poverty_network-'))
+        assert all(name.startswith(('src/', 'pipeline/', 'geo_synthetic_poverty_network-'))
                    for name in wheel.namelist())
+        for name in MODULES:
+            assert name.replace('.', '/') + '.py' in wheel.namelist()
+        for filename in ('constraints.cypher', 'tract_summary.cypher'):
+            assert f'pipeline/knowledge_graph/{filename}' in wheel.namelist()
         wheel.extractall(installed)
-    env = dict(os.environ, PYTHONPATH=str(installed), GSPN_DATA_DIR=str(tmp_path / 'data'))
+    env = dict(os.environ, GSPN_DATA_DIR=str(tmp_path / 'data'))
+    env.pop('PYTHONPATH', None)
     result = subprocess.run([
         sys.executable, '-c',
         'import importlib; from pathlib import Path; '
-        f'modules = [importlib.import_module(name) for name in {[name for name in MODULES if name.startswith("src.")]!r}]; '
+        f'modules = [importlib.import_module(name) for name in {MODULES!r}]; '
         f'assert all(Path(module.__file__).is_relative_to({str(installed)!r}) for module in modules)',
-    ], cwd=tmp_path, env=env, capture_output=True, text=True, timeout=120)
+    ], cwd=installed, env=env, capture_output=True, text=True, timeout=120)
+    assert result.returncode == 0, result.stderr
+    result = subprocess.run([
+        sys.executable, '-m', 'pipeline.preprocess.prepare_census.download_census_inputs', '--help',
+    ], cwd=installed, env=env, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr
 
 

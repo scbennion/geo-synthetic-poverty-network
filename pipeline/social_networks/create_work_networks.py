@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import pandas as pd
 from loguru import logger
-from create_social_networks import create_network, to_csv
+from pipeline.social_networks.create_social_networks import create_network, to_csv
 from src.settings import RESULTS_DIR, state_codes
 from src.command_line_options import add_geography_args, resolve_geography, us_run_name
 from src.set_random_seed import DEFAULT_SEED, add_seed_arg

@@ -42,16 +42,16 @@ flowchart LR
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt pytest
-python -m pip install -e .                 # install the shared src helpers
-# Run from the repository root; repeat this export in each new terminal session.
-export PYTHONPATH="$PWD/code/0-preprocess${PYTHONPATH:+:$PYTHONPATH}"
+python -m pip install -e .                 # install pipeline and shared src helpers
 python -m pytest                           # about 1.5 minutes
 ```
 
 The local-package entry in `requirements.txt` is commented out, so install the project explicitly
-with the separate editable-install command above. Only `src` is installed. Stage commands
-run directly from the checkout and import their neighboring modules. The `PYTHONPATH` export
-lets preprocessing subfolders share helpers without renaming packages; see [architecture](architecture.md).
+with the separate editable-install command above. Both `pipeline` and `src` are installed.
+Run the commands below from the repository root using `python -m pipeline...`.
+No `PYTHONPATH` export is needed. The pipeline folders are namespace packages, so they do not
+need `__init__.py` files; see [architecture](architecture.md).
+The former `python code/.../script.py` commands have been replaced by these module commands.
 Dependency completeness and environment locking remain separate work; installing this project
 does not install or pin the full scientific environment.
 
@@ -72,24 +72,24 @@ later steps read earlier outputs.
 
 ```bash
 # Census: population tables (DP1), tract boundaries, urban areas
-python code/0-preprocess/prepare_census/download_census_inputs.py --state ut
+python -m pipeline.preprocess.prepare_census.download_census_inputs --state ut
 
 # Commuting: LODES home-to-work flows, then county business counts (all states, one file)
-python code/0-preprocess/prepare_commute/process_lodes8.py --state ut
-python code/0-preprocess/prepare_commute/process_cbp.py --download
+python -m pipeline.preprocess.prepare_commute.process_lodes8 --state ut
+python -m pipeline.preprocess.prepare_commute.process_cbp --download
 
 # Census tracts joined with the commuting inputs (needs the two steps above)
-python code/0-preprocess/prepare_census/process_census_shp.py --state ut
+python -m pipeline.preprocess.prepare_census.process_census_shp --state ut
 
 # Workplaces per tract and their size weights
-python code/0-preprocess/prepare_commute/build_tract_workplace_json.py --state ut --seed 42
+python -m pipeline.preprocess.prepare_commute.build_tract_workplace_json --state ut --seed 42
 
 # Roads, then cleaning (replaces the original GRASS step)
-python code/0-preprocess/prepare_roads/download_process_roads.py --state ut
-python code/0-preprocess/prepare_roads/clean_roads.py --state ut
+python -m pipeline.preprocess.prepare_roads.download_process_roads --state ut
+python -m pipeline.preprocess.prepare_roads.clean_roads --state ut
 
 # Schools and daycares (EPA/ORNL 2015 layer)
-python code/0-preprocess/prepare_education/build_edu_sites.py --state ut --download
+python -m pipeline.preprocess.prepare_education.build_edu_sites --state ut --download
 ```
 
 What comes out, under `../data-pre-reorganization`: census tracts, the commuting table, the cleaned
@@ -105,7 +105,7 @@ run exactly.
 ## 1. Synthesize the population
 
 ```bash
-caffeinate -i python code/1-population-synthesis/run-synthesis-by-state.py --state ut --counties 035 --seed 42
+caffeinate -i python -m pipeline.population_synthesis.run_synthesis_by_state --state ut --counties 035 --seed 42
 ```
 
 Add `--dry-run` first to list the tracts it would process. Outputs go to
@@ -139,8 +139,8 @@ comparisons of scientific outputs. `--dry-run` writes no timing files.
 ## 2. Build the social networks
 
 ```bash
-python code/2-social-networks/create_edu_hhold_get_work_pop.py --state ut --counties 035 --seed 42
-python code/2-social-networks/create_work_networks.py --state ut --counties 035 --seed 42
+python -m pipeline.social_networks.create_edu_hhold_get_work_pop --state ut --counties 035 --seed 42
+python -m pipeline.social_networks.create_work_networks --state ut --counties 035 --seed 42
 ```
 
 The first writes the household, school and daycare networks to
@@ -151,9 +151,9 @@ network files before rebuilding them.
 ## 3. Validate
 
 ```bash
-python code/3-validation/validation_population.py --state ut --counties 035
-python code/3-validation/validation_hhold.py --state ut --counties 035
-python code/3-validation/validation_tract_avg_hhold.py --state ut --counties 035
+python -m pipeline.validation.validation_population --state ut --counties 035
+python -m pipeline.validation.validation_hhold --state ut --counties 035
+python -m pipeline.validation.validation_tract_avg_hhold --state ut --counties 035
 ```
 
 These compare the synthetic population with the census by tract. For a good run:
@@ -178,7 +178,7 @@ does not satisfy the exporter. This [handoff gap](input-data.md#stage-handoffs) 
 for later code work; no automatic conversion is implemented here.
 
 ```bash
-python code/4-knowledge-graph/export_neo4j_csv.py --state ut --counties 035 --seed 42
+python -m pipeline.knowledge_graph.export_neo4j_csv --state ut --counties 035 --seed 42
 ```
 
 This writes one CSV per node label and relationship type to `../data-pre-reorganization`, plus
@@ -247,11 +247,11 @@ export JAVA_HOME="$HOME/Library/Application Support/neo4j-desktop/Application/Ca
 # --rw stands for read-write, telling neo4j-cli to allow commands that change the database. neo4j-cli is Neo4j's terminal language
 neo4j-cli query --env $ENV --database system --rw 'CREATE DATABASE `ut-c035` WAIT'
 
-# Runs the file’s rules to keep node IDs unique and adds indexes that speed up searches. See code/4-knowledge-graph/constraints.cypher
-neo4j-cli query --env $ENV --database ut-c035 --rw "$(cat code/4-knowledge-graph/constraints.cypher)"
+# Runs the file’s rules to keep node IDs unique and adds indexes that speed up searches. See pipeline/knowledge_graph/constraints.cypher
+neo4j-cli query --env $ENV --database ut-c035 --rw "$(cat pipeline/knowledge_graph/constraints.cypher)"
 
 # Calculates tract totals and connections, such as commuting flows, so you can explore the county at tract level.
-neo4j-cli query --env $ENV --database ut-c035 --rw "$(cat code/4-knowledge-graph/tract_summary.cypher)"
+neo4j-cli query --env $ENV --database ut-c035 --rw "$(cat pipeline/knowledge_graph/tract_summary.cypher)"
 ```
 
 The import prints the node and relationship counts it created. They should equal the row counts

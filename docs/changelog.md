@@ -1,5 +1,10 @@
 # Changes vs. Jiang et al. (2024)
 
+## 2026-11-13 — Use importable pipeline paths
+
+- Rename `code/` to `pipeline/` and the numbered stage folders to `preprocess`, `population_synthesis`, `social_networks`, `validation`, and `knowledge_graph`. Rename the synthesis driver to `run_synthesis_by_state.py`.
+- Use fully qualified imports and `python -m pipeline...` commands. Package `pipeline` and `src`, with no new Python files or `PYTHONPATH` setup. Update existing tests and current documentation; earlier entries retain their historical paths. Scientific algorithms, CLI options, and data paths are unchanged.
+
 ## 2026-11-13 — Simplify Python packaging
 
 - Restore the `src`-only packaging configuration from `0b354fa`, including Python `>=3.12,<3.13`, and remove the `pipeline.*` import aliases. Stage scripts use direct imports; preprocessing shares helpers through the documented `PYTHONPATH`. Update import checks and setup documentation accordingly.

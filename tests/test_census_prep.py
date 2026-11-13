@@ -10,12 +10,12 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-from prepare_census import census_prep as cp
-from prepare_commute import cbp as cbp_data, lodes
-from create_individuals import create_individuals
+from pipeline.preprocess.prepare_census import census_prep as cp
+from pipeline.preprocess.prepare_commute import cbp as cbp_data, lodes
+from pipeline.population_synthesis.create_individuals import create_individuals
 
 ROOT = Path(__file__).resolve().parent.parent
-PROCESS = ROOT / 'code' / '0-preprocess' / 'prepare_census' / 'process_census_shp.py'
+PROCESS = ROOT / 'pipeline' / 'preprocess' / 'prepare_census' / 'process_census_shp.py'
 
 UT_TRACTS = ['49035100100', '49035100200', '49049000100']
 ID_TRACT = '16001000100'  # another state, must be filtered out
@@ -95,9 +95,9 @@ def _write_fixture(data_dir, commute=True):
 
 
 def _run(data_dir, *args):
-    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir),
-               PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
-    return subprocess.run([sys.executable, str(PROCESS), *args], cwd=PROCESS.parent, env=env,
+    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir))
+    env.pop('PYTHONPATH', None)
+    return subprocess.run([sys.executable, '-m', '.'.join(PROCESS.relative_to(ROOT).with_suffix('').parts), *args], cwd=ROOT, env=env,
                           capture_output=True, text=True)
 
 

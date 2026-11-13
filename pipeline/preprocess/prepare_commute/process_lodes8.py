@@ -4,14 +4,14 @@ For each state: raw-data/work_commute/<st>_od_{main,aux}_JT00_2020.csv.gz (downl
 certificates verified) -> interim-data/od/<st>-tract-od-2020.csv (read by the workplace
 counts) and processed-data/od/<st>-tract-od-2020.csv (read by the synthesis driver).
 
-Run: python process_lodes8.py --state ut      ('all' for every state)
+Run: python -m pipeline.preprocess.prepare_commute.process_lodes8 --state ut ('all' for every state)
 """
 import argparse
 
 from loguru import logger
 from tqdm import tqdm
 from src.command_line_options import resolve_state_codes
-from prepare_commute.lodes import download_lodes_2020_data, combine_in_out_county_data
+from pipeline.preprocess.prepare_commute.lodes import download_lodes_2020_data, combine_in_out_county_data
 from src.settings import state_dict
 
 

@@ -7,8 +7,14 @@ name = "geo-synthetic-poverty-network"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 
-[tool.setuptools]
-packages = ["src"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*", "pipeline", "pipeline.*"]
+exclude = ["*.__pycache__"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"pipeline.knowledge_graph" = ["*.cypher"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

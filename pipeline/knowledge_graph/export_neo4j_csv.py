@@ -7,7 +7,7 @@ Reads the run's outputs under RESULTS_DIR:
 and writes <DATA_DIR>/neo4j-import/<run>/ with one CSV per node label and relationship type,
 plus import.args (the neo4j-admin argument file). The graph model is in docs/knowledge-graph.md.
 
-Run: python export_neo4j_csv.py --state ut --counties 035
+Run: python -m pipeline.knowledge_graph.export_neo4j_csv --state ut --counties 035
 """
 import argparse
 import csv

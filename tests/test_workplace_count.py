@@ -10,10 +10,10 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-from prepare_commute.workplace_counts import get_number_of_wp, tract_and_county_jobs
+from pipeline.preprocess.prepare_commute.workplace_counts import get_number_of_wp, tract_and_county_jobs
 
 ROOT = Path(__file__).resolve().parent.parent
-DRIVER = ROOT / 'code' / '0-preprocess' / 'prepare_commute' / 'build_tract_workplace_json.py'
+DRIVER = ROOT / 'pipeline' / 'preprocess' / 'prepare_commute' / 'build_tract_workplace_json.py'
 
 # 2 counties, 4 tracts. 49035: ESTAB 100, jobs 30 + 70. 49049: ESTAB 50, jobs 10 + 30.
 ESTAB = {'49035': 100, '49049': 50}
@@ -114,13 +114,14 @@ def _write_fixture(d):
 
 
 def _run(d, *args):
-    env = dict(os.environ, GSPN_DATA_DIR=str(d), PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
-    return subprocess.run([sys.executable, str(DRIVER), *args], cwd=DRIVER.parent,
+    env = dict(os.environ, GSPN_DATA_DIR=str(d))
+    env.pop('PYTHONPATH', None)
+    return subprocess.run([sys.executable, '-m', '.'.join(DRIVER.relative_to(ROOT).with_suffix('').parts), *args], cwd=ROOT,
                           env=env, capture_output=True, text=True)
 
 
 def _read(path):
-    # read exactly as run-synthesis-by-state.py does
+    # read exactly as run_synthesis_by_state.py does
     df = pd.read_json(path, orient='records', lines=True)
     df['GEOID'] = df['GEOID'].astype(str)
     return df.set_index('GEOID')

@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from tqdm import tqdm
 
-from _downloads import download_file
+from pipeline.preprocess._downloads import download_file
 from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR
 
 
@@ -138,7 +138,7 @@ def process_interim_road_data(
 
     Returns the output path.
     """
-    from prepare_roads.road_cleaning import clean_road_network
+    from pipeline.preprocess.prepare_roads.road_cleaning import clean_road_network
 
     output_name = output_name or state_name
     output_dir = f"{processed_data_path}/road"
@@ -151,7 +151,7 @@ def process_interim_road_data(
     if not os.path.exists(input_path):
         raise FileNotFoundError(
             f"Interim road file {input_path} does not exist; "
-            "run code/0-preprocess/prepare_roads/download_process_roads.py first."
+            "run python -m pipeline.preprocess.prepare_roads.download_process_roads first."
         )
     logger.info(f"Reading interim roads from {input_path}")
     raw = gpd.read_file(input_path)

@@ -1,7 +1,7 @@
 """Join 2020 DP1 counts to TIGER tracts and prepare the urban-area file for one state.
 
-    python code/0-preprocess/prepare_census/download_census_inputs.py --state ut
-    python code/0-preprocess/prepare_census/process_census_shp.py --state ut
+    python -m pipeline.preprocess.prepare_census.download_census_inputs --state ut
+    python -m pipeline.preprocess.prepare_census.process_census_shp --state ut
 
 Writes (DATA_DIR from env GSPN_DATA_DIR, see src/settings.py):
     interim-data/census/ut_census_demo.shp.zip        tracts + DP1, EPSG:4269
@@ -21,8 +21,8 @@ import geopandas as gpd
 import pandas as pd
 from loguru import logger
 
-from prepare_census import census_prep as cp
-from prepare_commute import cbp as cbp_data, lodes, workplace_counts
+from pipeline.preprocess.prepare_census import census_prep as cp
+from pipeline.preprocess.prepare_commute import cbp as cbp_data, lodes, workplace_counts
 from src.command_line_options import resolve_state_codes
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR, state_codes, state_dict
 

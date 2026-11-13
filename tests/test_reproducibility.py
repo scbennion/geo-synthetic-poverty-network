@@ -17,9 +17,9 @@ import pytest
 from shapely.geometry import LineString, Point, box
 
 ROOT = Path(__file__).resolve().parent.parent
-SYNTH = ROOT / 'code' / '1-population-synthesis' / 'run-synthesis-by-state.py'
-EDU_HHOLD = ROOT / 'code' / '2-social-networks' / 'create_edu_hhold_get_work_pop.py'
-WORK = ROOT / 'code' / '2-social-networks' / 'create_work_networks.py'
+SYNTH = ROOT / 'pipeline' / 'population_synthesis' / 'run_synthesis_by_state.py'
+EDU_HHOLD = ROOT / 'pipeline' / 'social_networks' / 'create_edu_hhold_get_work_pop.py'
+WORK = ROOT / 'pipeline' / 'social_networks' / 'create_work_networks.py'
 
 CRS = 'EPSG:4269'
 TRACTS = ['49035000100', '49035000200', '49035000300']
@@ -104,11 +104,11 @@ def _write_fixture(data_dir):
 
 
 def _run(script, data_dir, *args):
-    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir),
-               PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
+    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir))
+    env.pop('PYTHONPATH', None)
     env.pop('OGR_CURRENT_DATE', None)  # the synthesis driver must pin GeoPackage timestamps itself
-    result = subprocess.run([sys.executable, str(script), '--state', 'ut', '--counties', '035', *args],
-                            cwd=script.parent, env=env, capture_output=True, text=True, timeout=120)
+    result = subprocess.run([sys.executable, '-m', '.'.join(script.relative_to(ROOT).with_suffix('').parts), '--state', 'ut', '--counties', '035', *args],
+                            cwd=ROOT, env=env, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-3000:]
 
 
@@ -180,7 +180,7 @@ def test_different_seed_differs(runs):
 
 def test_network_seed_alone_changes_ties():
     """With the population fixed, only the NWS draw depends on the network seed."""
-    from create_social_networks import create_network
+    from pipeline.social_networks.create_social_networks import create_network
     people = pd.DataFrame({'wp': ['w1'] * 30}, index=[f'p{i}' for i in range(30)])
     g1 = create_network(people, 'Work', seed=1)
     g2 = create_network(people, 'Work', seed=1)
@@ -193,7 +193,7 @@ def test_network_seed_alone_changes_ties():
 
 def test_unseeded_steps_keep_global_fallback():
     """Callers that pass no rng still work (legacy global np.random / fixed shuffle)."""
-    from assign_workplace import generate_workplace_id
+    from pipeline.population_synthesis.assign_workplace import generate_workplace_id
     work = pd.DataFrame({'WP_CNT': [3], 'WP_PROBA': [np.array([0.2, 0.3, 0.5])]}, index=['49035000100'])
     assert generate_workplace_id('49035000100', work).startswith('49035000100w')
     rng_a, rng_b = np.random.default_rng(5), np.random.default_rng(5)
@@ -201,8 +201,7 @@ def test_unseeded_steps_keep_global_fallback():
 
 
 def test_wp_proba_seeded():
-    import runpy
-    wp_proba = runpy.run_path(str(ROOT / "code/0-preprocess/prepare_commute/build_tract_workplace_json.py"))["wp_proba"]
+    from pipeline.preprocess.prepare_commute.build_tract_workplace_json import wp_proba
     a = wp_proba(6, np.random.default_rng(3))
     assert np.array_equal(a, wp_proba(6, np.random.default_rng(3)))
     assert not np.array_equal(a, wp_proba(6, np.random.default_rng(4)))

@@ -1,6 +1,6 @@
 """Census tract inputs for one state: DP1 demographic profile, TIGER tracts, urban areas.
 
-Order of the census preprocessing steps (see code/0-preprocess/prepare_census/):
+Order of the census preprocessing steps (see pipeline/preprocess/prepare_census/):
 
 1. ``download_census_inputs.py --state ut`` fetches, into ``RAW_DATA_DIR``:
    - ``demographic-profile-20/DECENNIALDP2020.DP1-ut-tracts.csv``: 2020 Demographic

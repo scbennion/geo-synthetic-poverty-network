@@ -14,8 +14,8 @@ import geopandas as gpd
 
 from loguru import logger
 from tqdm import tqdm
-from prepare_census import census_prep as cp
-from prepare_commute import cbp as cbp_data, lodes, workplace_counts
+from pipeline.preprocess.prepare_census import census_prep as cp
+from pipeline.preprocess.prepare_commute import cbp as cbp_data, lodes, workplace_counts
 from src.command_line_options import resolve_state_codes
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, state_dict
 

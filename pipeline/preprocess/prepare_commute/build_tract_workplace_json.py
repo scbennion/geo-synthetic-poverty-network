@@ -1,6 +1,6 @@
 """
 Build processed-data/us_tract_number_work.json (GEOID, WP_CNT, WP_PROBA), the
-workplace metadata that run-synthesis-by-state.py reads as JSON lines.
+workplace metadata that run_synthesis_by_state.py reads as JSON lines.
 
 Scope: the tracts of --state (optionally only --counties), plus any out-of-state
 work tracts that appear in that state's LODES `aux` file. WP_CNT comes from
@@ -27,10 +27,10 @@ import pandas as pd
 from loguru import logger
 
 from src.command_line_options import add_geography_args, resolve_geography, run_name
-from prepare_commute.workplace_counts import get_number_of_wp, tract_and_county_jobs, tract_geoid
+from pipeline.preprocess.prepare_commute.workplace_counts import get_number_of_wp, tract_and_county_jobs, tract_geoid
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR, state_dict
 from sklearn.preprocessing import normalize
-from prepare_census.census_prep import census_demo_path
+from pipeline.preprocess.prepare_census.census_prep import census_demo_path
 
 
 

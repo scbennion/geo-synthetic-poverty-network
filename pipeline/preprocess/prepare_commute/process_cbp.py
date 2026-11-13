@@ -6,14 +6,14 @@ Reads the paper's CB2000CBP.zip (raw-data/workplace/CB2000CBP.zip, pipe-delimite
 industries, legal forms and establishment sizes. The output covers every county in the
 input, so one run serves all states.
 
-Run: python process_cbp.py [--download] [--input PATH]
+Run: python -m pipeline.preprocess.prepare_commute.process_cbp [--download] [--input PATH]
 """
 import argparse
 import os
 
 from loguru import logger
-from _downloads import download_file
-from prepare_commute.cbp import CBP_URL, read_cbp_counties
+from pipeline.preprocess._downloads import download_file
+from pipeline.preprocess.prepare_commute.cbp import CBP_URL, read_cbp_counties
 from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR
 
 DEFAULT_INPUT = os.path.join(RAW_DATA_DIR, 'workplace', 'CB2000CBP.zip')

@@ -20,18 +20,18 @@ from loguru import logger
 from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_dict
 from src.command_line_options import add_geography_args, resolve_geography, in_counties, run_name
 from src.set_random_seed import add_seed_arg, seed_everything
-from timing import RunTiming
-from create_individuals import create_individuals
-from assign_household import __assign_household_order__
-from create_space import __create_home_location__
+from pipeline.population_synthesis.timing import RunTiming
+from pipeline.population_synthesis.create_individuals import create_individuals
+from pipeline.population_synthesis.assign_household import __assign_household_order__
+from pipeline.population_synthesis.create_space import __create_home_location__
 
-from assign_workplace import __assign_workplaces__
-from create_space import __create_work_location__
-from assign_education_site import __assign_education_site__, EducationSites
+from pipeline.population_synthesis.assign_workplace import __assign_workplaces__
+from pipeline.population_synthesis.create_space import __create_work_location__
+from pipeline.population_synthesis.assign_education_site import __assign_education_site__, EducationSites
 
-from create_space import classify_urban
-from population_verification import verify_population
-from results import collect_results
+from pipeline.population_synthesis.create_space import classify_urban
+from pipeline.population_synthesis.population_verification import verify_population
+from pipeline.population_synthesis.results import collect_results
 
 
 def load_tract_id_work():

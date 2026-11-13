@@ -3,7 +3,7 @@
 Real synthesis inputs are not in the repository, so the population GeoPackage is
 built here with the same columns, id formats and CRS the synthesis driver writes
 (it goes through ``results.collect_results`` and ``to_file(..., driver='GPKG')``
-exactly as ``run-synthesis-by-state.py`` does). The network and validation drivers
+exactly as ``run_synthesis_by_state.py`` does). The network and validation drivers
 are then run as subprocesses against it with ``GSPN_DATA_DIR`` pointing at tmp.
 """
 import csv
@@ -17,13 +17,13 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point, box
 
-from create_social_networks import wp_kind
+from pipeline.social_networks.create_social_networks import wp_kind
 from src.load_synthesis_output import population_source, read_population
-from results import collect_results
+from pipeline.population_synthesis.results import collect_results
 
 ROOT = Path(__file__).resolve().parent.parent
-NETWORKS = ROOT / 'code' / '2-social-networks'
-VALIDATION = ROOT / 'code' / '3-validation'
+NETWORKS = ROOT / 'pipeline' / 'social_networks'
+VALIDATION = ROOT / 'pipeline' / 'validation'
 
 # two Salt Lake (035) tracts and one Utah County (049) tract with people; one more
 # Salt Lake tract that "failed" in synthesis (listed in the error log, no people)
@@ -93,7 +93,7 @@ def _tract_people(geoid, minx):
 
 
 def _population_gpkg(path, tracts):
-    """Write a population GeoPackage the way run-synthesis-by-state.py does."""
+    """Write a population GeoPackage the way run_synthesis_by_state.py does."""
     people = [_tract_people(g, -112 + TRACTS.index(g) * 0.01) for g in tracts]
     population_df = collect_results(people, 'Pop')
     population_df['wp'] = population_df['wp'].fillna(population_df['hhold'])  # missing-wp branch
@@ -112,8 +112,9 @@ def data_dir(tmp_path):
 
 
 def _run(script, data_dir, *args):
-    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]), MPLBACKEND='Agg')
-    result = subprocess.run([sys.executable, str(script), *args], cwd=script.parent, env=env,
+    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), MPLBACKEND='Agg')
+    env.pop('PYTHONPATH', None)
+    result = subprocess.run([sys.executable, '-m', '.'.join(script.relative_to(ROOT).with_suffix('').parts), *args], cwd=ROOT, env=env,
                             capture_output=True, text=True, timeout=600)
     assert result.returncode == 0, result.stderr[-3000:]
     assert 'An error occurred' not in result.stderr, result.stderr[-3000:]
@@ -225,12 +226,10 @@ def test_county_run_file_used_when_present(data_dir):
 
 
 COSINE_AGG = """
-import importlib.util, sys
+import sys
 import pandas as pd
-spec = importlib.util.spec_from_file_location('cosine', sys.argv[1])
-cosine = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(cosine)
-rel = pd.DataFrame({'GEOID': sys.argv[2:], 'PUMAID': ['4900001', '4900001', '4900002']})
+from pipeline.validation import validation_external_cosine as cosine
+rel = pd.DataFrame({'GEOID': sys.argv[1:], 'PUMAID': ['4900001', '4900001', '4900002']})
 agg = cosine.get_us_aggregate_spop_data(rel, ['49'], ['035'])
 print(list(agg.index), int(agg.to_numpy().sum()))
 """
@@ -257,9 +256,10 @@ def test_external_validation_reads_gpkg(data_dir):
     assert summary['all'].tolist() == [2]
 
     # PUMA cosine check: the synthetic aggregation step (PUMS microdata are not in the repo)
-    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir), PYTHONPATH=os.pathsep.join([str(ROOT), str(ROOT / 'code' / '0-preprocess'), os.environ.get('PYTHONPATH', '')]))
-    result = subprocess.run([sys.executable, '-c', COSINE_AGG, str(VALIDATION / 'validation_external_cosine.py'),
-                             *TRACTS], cwd=VALIDATION, env=env, capture_output=True, text=True, timeout=300)
+    env = dict(os.environ, GSPN_DATA_DIR=str(data_dir))
+    env.pop('PYTHONPATH', None)
+    result = subprocess.run([sys.executable, '-c', COSINE_AGG, *TRACTS],
+                            cwd=ROOT, env=env, capture_output=True, text=True, timeout=300)
     assert result.returncode == 0, result.stderr[-3000:]
     assert result.stdout.split('\n')[-2] == f"['4900001'] {36 * PER_GROUP * 2}"
 

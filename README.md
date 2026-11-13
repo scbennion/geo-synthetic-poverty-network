@@ -30,7 +30,7 @@ The broader lab questions, quoted from the professor's UDRC proposal as shared i
 Use Python 3.12 and follow the [pipeline guide](docs/pipeline.md) for environment prerequisites, input preparation, execution, validation, and Neo4j import. The working example is Utah (`--state ut`), Salt Lake County (`--counties 035`), seed 42. After preparing its inputs, preview synthesis with:
 
 ```bash
-python code/1-population-synthesis/run-synthesis-by-state.py --state ut --counties 035 --seed 42 --dry-run
+python -m pipeline.population_synthesis.run_synthesis_by_state --state ut --counties 035 --seed 42 --dry-run
 ```
 
 Data live under `data-pre-reorganization` by default, or the directory selected by `GSPN_DATA_DIR`. Data are distributed separately and ignored by Git. The pilot has known coverage and modeling limitations; a successful demographic check does not establish that generated ties match real friendships.
