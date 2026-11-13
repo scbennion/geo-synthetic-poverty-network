@@ -1,15 +1,11 @@
 import csv
-import importlib.util
 import sqlite3
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
-spec = importlib.util.spec_from_file_location('export_neo4j_csv', ROOT / 'code' / '4-knowledge-graph' / 'export_neo4j_csv.py')
-exporter = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(exporter)
+from pipeline.knowledge_graph import export_neo4j_csv as exporter
 
 T = '49035100100'
 PEOPLE = [  # id, age, hhold, htype, wp

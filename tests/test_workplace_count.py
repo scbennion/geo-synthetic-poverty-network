@@ -10,10 +10,10 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-from src.preprocess_data import county_fips, get_number_of_wp, tract_and_county_jobs
+from pipeline.preprocess.prepare_commute.workplace_counts import get_number_of_wp, tract_and_county_jobs
 
 ROOT = Path(__file__).resolve().parent.parent
-DRIVER = ROOT / 'code' / '0-preprocess' / 'prepare-commute-data' / 'build_tract_workplace_json.py'
+DRIVER = ROOT / 'pipeline' / 'preprocess' / 'prepare_commute' / 'build_tract_workplace_json.py'
 
 # 2 counties, 4 tracts. 49035: ESTAB 100, jobs 30 + 70. 49049: ESTAB 50, jobs 10 + 30.
 ESTAB = {'49035': 100, '49049': 50}
@@ -50,7 +50,8 @@ def test_county_sum_never_exceeds_estab():
     od, cbp, errors = _od(JOBS), _cbp(ESTAB), []
     totals = {}
     for t in JOBS:
-        totals[county_fips(t)] = totals.get(county_fips(t), 0) + _wp_cnt(t, od, cbp, errors)
+        county = t[:5]
+        totals[county] = totals.get(county, 0) + _wp_cnt(t, od, cbp, errors)
     for c, total in totals.items():
         assert total <= ESTAB[c]
 
@@ -113,13 +114,14 @@ def _write_fixture(d):
 
 
 def _run(d, *args):
-    env = dict(os.environ, GSPN_DATA_DIR=str(d), PYTHONPATH=str(ROOT))
-    return subprocess.run([sys.executable, str(DRIVER), *args], cwd=DRIVER.parent,
+    env = dict(os.environ, GSPN_DATA_DIR=str(d))
+    env.pop('PYTHONPATH', None)
+    return subprocess.run([sys.executable, '-m', '.'.join(DRIVER.relative_to(ROOT).with_suffix('').parts), *args], cwd=ROOT,
                           env=env, capture_output=True, text=True)
 
 
 def _read(path):
-    # read exactly as run-synthesis-by-state.py does
+    # read exactly as run_synthesis_by_state.py does
     df = pd.read_json(path, orient='records', lines=True)
     df['GEOID'] = df['GEOID'].astype(str)
     return df.set_index('GEOID')
@@ -149,3 +151,17 @@ def test_driver_counties_subset(tmp_path):
     df = _read(tmp_path / 'out.json')
     assert sorted(df.index) == ['16001000100', '49049000100', '49049000200']
     assert df.loc['49049000100', 'WP_CNT'] == 12 and df.loc['49049000200', 'WP_CNT'] == 37
+
+
+def test_driver_seed_repeats_workplace_weights(tmp_path):
+    _write_fixture(tmp_path)
+    output = tmp_path / 'processed-data' / 'us_tract_number_work.json'
+    result = _run(tmp_path, '--seed', '42')
+    assert result.returncode == 0, result.stderr
+    first = output.read_bytes()
+    result = _run(tmp_path, '--seed', '42')
+    assert result.returncode == 0, result.stderr
+    assert output.read_bytes() == first
+    result = _run(tmp_path, '--seed', '43')
+    assert result.returncode == 0, result.stderr
+    assert output.read_bytes() != first
