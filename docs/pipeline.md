@@ -97,10 +97,13 @@ roads, school and daycare sites, urban areas and `us_tract_number_work.json`.
 [Input paths](input-data.md#input-paths) lists the exact file names;
 [input data](input-data.md) explains the sources and transformations.
 
-**Known issue:** `build_tract_workplace_json.py --seed` does not yet make the workplace size
-weights repeatable (see [workplace-weight seeding](limitations.md#setup-and-file-handoff-gaps)). Rebuilding this file
-gives a slightly different population for the same seed. Keep the file if you need to repeat a
-run exactly.
+The workplace step uses `--seed` to make its size weights repeatable with the same inputs,
+tract scope, and software environment. Keep the generated file with your run inputs for
+exact comparisons with older runs.
+
+The workplace step always writes a CSV under `processed-data/workplaces_error`, even when
+there are no missing inputs. A report containing only the `tract` header means no tracts
+were flagged; the directory name alone does not indicate that the step failed.
 
 ## 1. Synthesize the population
 
@@ -279,7 +282,7 @@ To view a graph snippet, navigate to the Bloom tab, and select Database: ut-c035
 | `process_census_shp.py` exits with code 3 | The commuting inputs are missing. Run `process_lodes8.py` and `process_cbp.py` first. |
 | Synthesis takes hours | The machine slept. Keep it awake (see *Before you start*). |
 | Network step finishes instantly with old results | A network file already exists and is not rebuilt. Delete it first. |
-| A rerun's scientific outputs differ from an earlier run | Different library versions (most are unpinned) or a rebuilt `us_tract_number_work.json`. Timing reports vary normally. See [`limitations.md`](limitations.md). |
+| A rerun's scientific outputs differ from an earlier run | Check the inputs, seeds and library versions (most are unpinned). Workplace files built before the seeding fix cannot be reproduced from their seed alone. Timing reports vary normally. See [`limitations.md`](limitations.md). |
 | Can't find `neo4j-cli` | `neo4j-cli` is not installed, run `pip install neo4j-cli` |
 | `neo4j-admin` can't find Java | Set `JAVA_HOME` to the Java runtime Desktop downloaded, as above. |
 | `neo4j-admin import` refuses to run | The database already exists. Drop it first. |

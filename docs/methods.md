@@ -272,7 +272,7 @@ Synthesis seeds Python's global `random` and passes a NumPy generator through se
 
 All tracts share a random stream and run in GEOID order. County-only and full-state runs therefore need not produce the same people for a given tract. Deriving per-tract seeds from `(seed, GEOID)` is an option, but would change existing outputs. Individual ages are shuffled using the run generator; passing `rng=None` to the individual generator restores its original fixed shuffle seed of 123.
 
-The workplace-weight preparation driver seeds `np.random`, but `wp_proba()` creates an unseeded `default_rng()` unless passed a generator. Rebuilding `us_tract_number_work.json` is therefore not repeatable from `--seed` alone. Earlier two-run comparisons reused that JSON; they do not demonstrate repeatability from freshly downloaded inputs. See [potential engineering solutions](limitations.md#setup-and-file-handoff-gaps).
+The workplace-weight preparation driver passes a seeded generator to `wp_proba()`. With the same inputs, tract scope, seed, and software environment, rebuilding `us_tract_number_work.json` is repeatable. Earlier two-run comparisons reused that JSON; they do not demonstrate repeatability from freshly downloaded inputs.
 
 Matching scientific outputs requires the same prepared inputs, seed, processing order, and library versions. Most dependencies are unpinned; the versions for the original Salt Lake runs were not preserved. The October 27 environment notes record pandas 3.1, NumPy 2.5, NetworkX 3.7, and GeoPandas 1.2 for a later rebuilt environment, not for the original pilot. Timing diagnostics vary and must be excluded from byte comparisons.
 
@@ -333,4 +333,4 @@ The requirements now specify Notebook 6.5.7. During cloud setup, the former 6.5.
 
 The earlier open-decision notes identify these issues as resolved: leading zeros lost from GEOIDs, `wNotFound` workplace IDs accidentally matching daycare, working-directory-dependent commuting paths, and validation readers ignoring county-specific run names. Their history remains in the [changelog](changelog.md).
 
-Current implementation problems and possible remedies are maintained in [limitations](limitations.md), including workplace-weight seeding, tracebacks, CRS alignment, and file handoffs. Before a full Utah run, the earlier notes prioritized workplace-weight seeding and error tracebacks, followed by decisions about jobs and education. Before modeling another state, resolve the Utah-specific projection.
+Current implementation problems and possible remedies are maintained in [limitations](limitations.md), including tracebacks, CRS alignment, and file handoffs. Before modeling another state, resolve the Utah-specific projection.

@@ -66,7 +66,8 @@ def aux_destination_tracts(state_code):
     return sorted(t for t in tracts if t[:2] != state_code)
 
 
-def build(state_code, counties=None):
+def build(state_code, counties=None, rng=None):
+    rng = np.random.default_rng() if rng is None else rng
     cbp = pd.read_csv(os.path.join(INTERIM_DATA_DIR, 'cbp/workplace_cbp.csv'), dtype={'county': str})
     cbp['county'] = cbp['county'].str.zfill(5)
 
@@ -98,7 +99,7 @@ def build(state_code, counties=None):
         else:
             od, jobs = by_state[st]
             wp_cnt = get_number_of_wp(pd.Series({'GEOID': geoid}), od, cbp, st, error_tract, jobs=jobs)
-        rows.append({'GEOID': geoid, 'WP_CNT': int(wp_cnt), 'WP_PROBA': wp_proba(int(wp_cnt)).tolist()})
+        rows.append({'GEOID': geoid, 'WP_CNT': int(wp_cnt), 'WP_PROBA': wp_proba(int(wp_cnt), rng).tolist()})
 
     return pd.DataFrame(rows, columns=['GEOID', 'WP_CNT', 'WP_PROBA']), error_tract
 
@@ -108,16 +109,13 @@ def main(argv=None):
     parser.set_defaults(state='ut')
     parser.add_argument('--output', default=os.path.join(PROCESSED_DATA_DIR, 'us_tract_number_work.json'))
     parser.add_argument('--seed', type=int, default=None,
-                        help='seed numpy.random before drawing WP_PROBA (default: unseeded, as before)')
+                        help='seed the generator used for WP_PROBA (default: unseeded)')
     args = parser.parse_args(argv)
     codes, counties = resolve_geography(args)
     if len(codes) != 1:
         parser.error('--state must name a single state')
     state_code = codes[0]
-    if args.seed is not None:
-        np.random.seed(args.seed)
-
-    df, error_tract = build(state_code, counties)
+    df, error_tract = build(state_code, counties, rng=np.random.default_rng(args.seed))
 
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
     df.to_json(args.output, orient='records', lines=True)
@@ -127,7 +125,10 @@ def main(argv=None):
     os.makedirs(error_dir, exist_ok=True)
     error_path = os.path.join(error_dir, f"{run_name(state_dict[state_code].lower(), counties)}-tract-number-work-error.csv")
     pd.DataFrame(error_tract, columns=['tract']).to_csv(error_path, index=False)
-    logger.info(f"{len(error_tract)} tracts with WP_CNT=0 due to missing inputs; listed in {error_path}")
+    if error_tract:
+        logger.warning(f"{len(error_tract)} tracts have WP_CNT=0 due to missing inputs; listed in {error_path}")
+    else:
+        logger.info(f"No tracts had missing workplace inputs; empty report written to {error_path}")
 
 
 if __name__ == '__main__':

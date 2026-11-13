@@ -25,7 +25,6 @@ The [changelog](changelog.md) records earlier fixes. The issues below remain doc
 
 | Area | Current behavior or problem | Potential solution |
 | --- | --- | --- |
-| Workplace-weight seeding | `build_tract_workplace_json.py` seeds `np.random`, while `wp_proba()` creates an unseeded generator. Rebuilt inputs can change despite the same `--seed`. | Pass the run's seeded generator into `wp_proba()` and extend `tests/test_commute_prep.py` to compare `WP_PROBA` as well as `WP_CNT`. |
 | County/full-state repeatability | Tracts share one random stream; geography selection changes which draws reach each tract. | Consider per-tract seeds derived from `(seed, GEOID)`, with an explicit decision about changed outputs. See [reproducibility](methods.md#reproducibility). |
 | Unlocked environment | Most versions are unpinned, and the original pilot's library versions were not preserved. | Record and lock a verified environment in a separate setup change. Identical seeds alone cannot guarantee identical outputs across versions. |
 | Local-package installation | The requirements file does not install the project automatically. Both `pipeline` and `src` are included in the project package. | Run `python -m pip install -e .` as described in [setup](pipeline.md#setup), then use `python -m pipeline...` from the repository root without a `PYTHONPATH` override. |

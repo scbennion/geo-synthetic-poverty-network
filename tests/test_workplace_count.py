@@ -151,3 +151,17 @@ def test_driver_counties_subset(tmp_path):
     df = _read(tmp_path / 'out.json')
     assert sorted(df.index) == ['16001000100', '49049000100', '49049000200']
     assert df.loc['49049000100', 'WP_CNT'] == 12 and df.loc['49049000200', 'WP_CNT'] == 37
+
+
+def test_driver_seed_repeats_workplace_weights(tmp_path):
+    _write_fixture(tmp_path)
+    output = tmp_path / 'processed-data' / 'us_tract_number_work.json'
+    result = _run(tmp_path, '--seed', '42')
+    assert result.returncode == 0, result.stderr
+    first = output.read_bytes()
+    result = _run(tmp_path, '--seed', '42')
+    assert result.returncode == 0, result.stderr
+    assert output.read_bytes() == first
+    result = _run(tmp_path, '--seed', '43')
+    assert result.returncode == 0, result.stderr
+    assert output.read_bytes() != first
