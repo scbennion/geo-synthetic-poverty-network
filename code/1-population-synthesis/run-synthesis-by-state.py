@@ -21,15 +21,17 @@ from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_dict
 from src.cli import add_geography_args, resolve_geography, in_counties, run_name
 from src.seeding import add_seed_arg, seed_everything
 from src.timing import RunTiming
-from src.create_individuals import create_individuals
-from src.assign_household import __assign_household_order__
-from src.create_space import __create_home_location__
+from pipeline.population.create_individuals import create_individuals
+from pipeline.population.assign_household import __assign_household_order__
+from pipeline.population.create_space import __create_home_location__
 
-from src.assign_workplace import __assign_workplaces__
-from src.create_space import __create_work_location__
-from src.assign_education_site import __assign_education_site__, EducationSites
+from pipeline.population.assign_workplace import __assign_workplaces__
+from pipeline.population.create_space import __create_work_location__
+from pipeline.population.assign_education_site import __assign_education_site__, EducationSites
 
-from src.tools import classify_urban, verify_population, collect_results
+from pipeline.population.create_space import classify_urban
+from pipeline.population.population_verification import verify_population
+from pipeline.population.results import collect_results
 
 
 def load_tract_id_work():

@@ -10,8 +10,8 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-from src import census_prep as cp
-from src.create_individuals import create_individuals
+from pipeline.preprocess import census_prep as cp
+from pipeline.population.create_individuals import create_individuals
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESS = ROOT / 'code' / '0-preprocess' / 'prepare-census' / 'process_census_shp.py'
@@ -143,7 +143,7 @@ def test_process_state_writes_both_files(tmp_path):
     people = create_individuals(tract)
     assert len(people) == sum(_dp1_value(c, 0) for c in MALE_GROUPS + FEMALE_GROUPS)
     assert (people.gender == 'm').sum() == sum(_dp1_value(c, 0) for c in MALE_GROUPS)
-    # src/verification.py indexes the frame with GEOID as a column
+    # pipeline.validation.after_validation_functions indexes the frame with GEOID as a column
     assert list(work.iloc[:, 14:51].drop('DP1_0049C', axis=1).columns) == MALE_GROUPS + FEMALE_GROUPS
 
     urban = gpd.read_file(cp.urban_gpkg_path('49', str(tmp_path / 'processed-data')))

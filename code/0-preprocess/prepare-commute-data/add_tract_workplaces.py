@@ -14,7 +14,7 @@ import geopandas as gpd
 
 from loguru import logger
 from tqdm import tqdm
-from src import census_prep as cp
+from pipeline.preprocess import census_prep as cp
 from src.cli import resolve_state_codes
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, state_dict
 

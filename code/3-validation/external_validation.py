@@ -39,47 +39,6 @@ def read_pums_file(path):
     logger.info(f'combined with shape {combine_df.shape}')
     return combine_df
 
-def get_aggregate_pums_data(data_pums):
-    """
-    Aggregates PUMS data by age group and gender.
-    """
-    # Age group categorization
-    data_pums.loc[data_pums["AGEP"] <= 4, "AGEG"] = str(0).zfill(2)
-    #for lower, upper, group in zip(range(5, 80, 5), range(9, 85, 5), range(1, 16)):
-    for lower, upper, group in zip(range(5, 85, 5), range(9, 90, 5), range(1, 17)):
-        data_pums.loc[(data_pums["AGEP"] >= lower) & (data_pums["AGEP"] <= upper), "AGEG"] = str(group).zfill(2)
-    data_pums.loc[data_pums["AGEP"] >= 85, "AGEG"] = str(17)
-
-    # State and PUMA code formatting
-    data_pums['ST'] = data_pums['ST'].apply('{:0>2}'.format)
-    data_pums['PUMA'] = data_pums['PUMA'].apply('{:0>5}'.format)
-    # Creating a combined identifier
-    data_pums['PUMAID'] = data_pums[['ST', 'PUMA']].apply(lambda x: ''.join(x), axis=1)
-    # Select specific columns for output
-    puma_select = data_pums.loc[:, ["PUMAID", "AGEG", "SEX"]]
-
-    # Generate column names based on gender and age groups
-    n1, n2 = 2, 18
-    pums_aggregate_col_name = np.empty((n1 * n2), dtype="U10")  # Flatten the array
-    index = 0
-    for gender in range(n1):
-        for age in range(n2):
-            pums_aggregate_col_name[index] = str(gender + 1) + str(age).zfill(2)
-            index += 1
-
-    # Assuming 'puma_select' is a DataFrame that has been defined earlier
-    pums_aggregate_id = sorted(set(puma_select['PUMAID'].to_list()))  # Extract, deduplicate, and sort PUMA IDs
-
-    # Create DataFrame with PUMA IDs as index and initialized with zeros
-    pums_aggregate_df = pd.DataFrame(0, index=pums_aggregate_id, columns=pums_aggregate_col_name)
-
-    df = puma_select.groupby(["PUMAID", "AGEG", "SEX"]).size()
-    for idx, item in df.items():
-        pumaid = idx[0]
-        col_name = str(str(idx[2]) + str(idx[1]).zfill(2))  # sex 1 is male, 2 is female
-        pums_aggregate_df.at[pumaid, col_name] = int(item)
-
-    return pums_aggregate_df
 
 def get_aggregate_pums20_data(data_pums):
     """
@@ -87,7 +46,6 @@ def get_aggregate_pums20_data(data_pums):
     """
     # Age group categorization
     data_pums.loc[data_pums["AGEP"] <= 4, "AGEG"] = str(0).zfill(2)
-    #for lower, upper, group in zip(range(5, 80, 5), range(9, 85, 5), range(1, 16)):
     for lower, upper, group in zip(range(5, 85, 5), range(9, 90, 5), range(1, 17)):
         data_pums.loc[(data_pums["AGEP"] >= lower) & (data_pums["AGEP"] <= upper), "AGEG"] = str(group).zfill(2)
     data_pums.loc[data_pums["AGEP"] >= 85, "AGEG"] = str(17)
@@ -142,7 +100,6 @@ def get_aggregate_spop_data(spop, pums_id_tract):
 
     # assigning age group
     spop.loc[spop["age"] <= 4, "AGEG"] = str(0).zfill(2)
-    # for lower, upper, group in zip(range(5, 80, 5), range(9, 85, 5), range(1, 16)):
     for lower, upper, group in zip(range(5, 85, 5), range(9, 90, 5), range(1, 17)):
         spop.loc[(spop["age"] >= lower) & (spop["age"] <= upper), "AGEG"] = str(group).zfill(2)
     spop.loc[spop["age"] >= 85, "AGEG"] = str(17)

@@ -180,7 +180,7 @@ def test_different_seed_differs(runs):
 
 def test_network_seed_alone_changes_ties():
     """With the population fixed, only the NWS draw depends on the network seed."""
-    from src.create_social_networks import create_network
+    from pipeline.networks.create_social_networks import create_network
     people = pd.DataFrame({'wp': ['w1'] * 30}, index=[f'p{i}' for i in range(30)])
     g1 = create_network(people, 'Work', seed=1)
     g2 = create_network(people, 'Work', seed=1)
@@ -193,7 +193,7 @@ def test_network_seed_alone_changes_ties():
 
 def test_unseeded_steps_keep_global_fallback():
     """Callers that pass no rng still work (legacy global np.random / fixed shuffle)."""
-    from src.assign_workplace import generate_workplace_id
+    from pipeline.population.assign_workplace import generate_workplace_id
     work = pd.DataFrame({'WP_CNT': [3], 'WP_PROBA': [np.array([0.2, 0.3, 0.5])]}, index=['49035000100'])
     assert generate_workplace_id('49035000100', work).startswith('49035000100w')
     rng_a, rng_b = np.random.default_rng(5), np.random.default_rng(5)
@@ -201,7 +201,8 @@ def test_unseeded_steps_keep_global_fallback():
 
 
 def test_wp_proba_seeded():
-    from src.tools import wp_proba
+    import runpy
+    wp_proba = runpy.run_path(str(ROOT / "code/0-preprocess/prepare-commute-data/build_tract_workplace_json.py"))["wp_proba"]
     a = wp_proba(6, np.random.default_rng(3))
     assert np.array_equal(a, wp_proba(6, np.random.default_rng(3)))
     assert not np.array_equal(a, wp_proba(6, np.random.default_rng(4)))

@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-from src.preprocess_data import county_fips, get_number_of_wp, tract_and_county_jobs
+from pipeline.preprocess.preprocess_data import get_number_of_wp, tract_and_county_jobs
 
 ROOT = Path(__file__).resolve().parent.parent
 DRIVER = ROOT / 'code' / '0-preprocess' / 'prepare-commute-data' / 'build_tract_workplace_json.py'
@@ -50,7 +50,8 @@ def test_county_sum_never_exceeds_estab():
     od, cbp, errors = _od(JOBS), _cbp(ESTAB), []
     totals = {}
     for t in JOBS:
-        totals[county_fips(t)] = totals.get(county_fips(t), 0) + _wp_cnt(t, od, cbp, errors)
+        county = t[:5]
+        totals[county] = totals.get(county, 0) + _wp_cnt(t, od, cbp, errors)
     for c, total in totals.items():
         assert total <= ESTAB[c]
 

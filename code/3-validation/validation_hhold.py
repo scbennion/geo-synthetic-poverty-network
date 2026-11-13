@@ -7,8 +7,9 @@ from tqdm import tqdm
 
 from loguru import logger
 from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
-from src.verification import get_hholde_type_amount, plot_hhold_df
-from src.after_validation_functions import read_error_tracts, read_run_census
+from pipeline.validation.after_validation_functions import (
+    get_hholde_type_amount, plot_hhold_df, read_error_tracts, read_run_census,
+)
 from src.cli import add_geography_args, resolve_geography, run_name, us_run_name
 from src.population_io import population_source, read_population
 

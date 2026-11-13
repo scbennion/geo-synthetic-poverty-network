@@ -8,7 +8,7 @@ from tqdm import tqdm
 from loguru import logger
 
 from src.settings import PROCESSED_DATA_DIR, RESULTS_DIR, state_codes, state_dict
-from src.after_validation_functions import verifiy_age_group, plot_ver_age_df, read_error_tracts, read_run_census
+from pipeline.validation.after_validation_functions import verifiy_age_group, plot_ver_age_df, read_error_tracts, read_run_census
 from src.cli import add_geography_args, resolve_geography, run_name
 from src.population_io import population_source, read_population
 

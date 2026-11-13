@@ -21,7 +21,7 @@ import geopandas as gpd
 import pandas as pd
 from loguru import logger
 
-from src import census_prep as cp
+from pipeline.preprocess import census_prep as cp
 from src.cli import resolve_state_codes
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR, state_codes, state_dict
 
@@ -38,7 +38,7 @@ def load_dp1(run_state_codes, raw_data_path=RAW_DATA_DIR):
 
 
 def load_tract_boundaries(run_state_codes, raw_data_path=RAW_DATA_DIR, interim_data_path=INTERIM_DATA_DIR):
-    """Per-state TIGER zips if present, else interim all_census.shp.zip (download_census_shp.py)."""
+    """Per-state TIGER zips if present, else a previously prepared interim all_census.shp.zip."""
     per_state = [cp.tiger_tract_zip_path(c, raw_data_path) for c in run_state_codes]
     if all(os.path.exists(p) for p in per_state):
         return pd.concat([gpd.read_file(p) for p in per_state], ignore_index=True)

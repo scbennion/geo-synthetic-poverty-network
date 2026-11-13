@@ -16,7 +16,7 @@ Order of the census preprocessing steps (see code/0-preprocess/prepare-census/):
    If the commute inputs exist it also writes
    ``PROCESSED_DATA_DIR/census/ut-tracts-demo-work.shp.zip``.
 3. The ``-work`` file adds ``WP_CNT`` (workplaces per tract), which
-   ``src/create_space.py::__create_work_location__`` needs. It requires
+   ``pipeline.population.create_space.__create_work_location__`` needs. It requires
    ``INTERIM_DATA_DIR/cbp/workplace_cbp.csv`` (``process_cbp.py``) and
    ``INTERIM_DATA_DIR/od/ut-tract-od-2020.csv`` (``process_lodes8.py``).
 
@@ -80,7 +80,7 @@ def tiger_tract_zip_path(state_code, raw_data_path=None):
 
 
 def national_tract_path(interim_data_path=None):
-    """All-US tract boundaries written by download_census_shp.py."""
+    """Path for previously prepared all-US tract boundaries."""
     return os.path.join(interim_data_path or INTERIM_DATA_DIR, 'census', 'all_census.shp.zip')
 
 
@@ -231,7 +231,7 @@ def state_urban_areas(urban, state_tracts, crs=TARGET_CRS):
 
 def add_workplace_counts(state_census, od_df, cbp, state_code):
     """Adds WP_CNT using get_number_of_wp; returns (gdf, error_tracts). Same as add_tract_workplaces.py."""
-    from src.preprocess_data import get_number_of_wp
+    from pipeline.preprocess.preprocess_data import get_number_of_wp
     state_census = state_census.copy()
     error_tract = []
     state_census['WP_CNT'] = state_census.apply(get_number_of_wp, args=(od_df, cbp, state_code, error_tract),

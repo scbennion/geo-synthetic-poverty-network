@@ -12,7 +12,7 @@ Salt Lake County baseline: **121 minutes** (250 successful tracts, one failed).
 
 Validation: 48 focused tests passed, plus 220 comparisons with the previous member-selection code. Assignments and random states matched on three real tracts; both synthetic pipeline runs (seeds 42 and 7) produced byte-identical files compared with the previous code.
 
-Sources: [baseline timings](../data/results-data/ut/ut_c035_timing_summary.csv), [household code](../src/assign_household.py), [education code](../src/assign_education_site.py), [urban code](../src/tools.py). The baseline measures this project before optimization, not the upstream project.
+Sources: [baseline timings](../data/results-data/ut/ut_c035_timing_summary.csv), [household code](../code/1-population-synthesis/assign_household.py), [education code](../code/1-population-synthesis/assign_education_site.py), [urban code](../code/1-population-synthesis/create_space.py). The baseline measures this project before optimization, not the upstream project.
 
 ## Estimated current breakdown
 

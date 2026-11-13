@@ -11,7 +11,7 @@ warnings.simplefilter('ignore', InsecureRequestWarning)
 
 from loguru import logger
 from src.settings import state_codes, state_dict, RAW_DATA_DIR, RESULTS_DIR
-from src.external_validation import (read_pums_file,get_aggregate_spop_data,
+from pipeline.validation.external_validation import (read_pums_file,get_aggregate_spop_data,
                                      get_aggregate_pums20_data, read_clean_pums_tract_relationship,
                                      get_cosine_similarity)
 from src.cli import add_geography_args, resolve_geography

@@ -4,9 +4,9 @@ workplace metadata that run-synthesis-by-state.py reads as JSON lines.
 
 Scope: the tracts of --state (optionally only --counties), plus any out-of-state
 work tracts that appear in that state's LODES `aux` file. WP_CNT comes from
-src.preprocess_data.get_number_of_wp, i.e. floor(ESTAB_c * J_t / J_c) with J_t and
+pipeline.preprocess.preprocess_data.get_number_of_wp, i.e. floor(ESTAB_c * J_t / J_c) with J_t and
 J_c taken from the work side of the tract's own state's OD table; WP_PROBA from
-src.tools.wp_proba.
+the local wp_proba helper.
 
 Inputs (settings paths):
   INTERIM_DATA_DIR/cbp/workplace_cbp.csv                 (process_cbp.py)
@@ -27,10 +27,24 @@ import pandas as pd
 from loguru import logger
 
 from src.cli import add_geography_args, resolve_geography, run_name
-from src.preprocess_data import get_number_of_wp, tract_and_county_jobs, tract_geoid
+from pipeline.preprocess.preprocess_data import get_number_of_wp, tract_and_county_jobs, tract_geoid
 from src.settings import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, RAW_DATA_DIR, state_dict
-from src.tools import wp_proba
-from src.census_prep import census_demo_path
+from sklearn.preprocessing import normalize
+from pipeline.preprocess.census_prep import census_demo_path
+
+
+
+def wp_proba(x, rng=None):
+    """
+    probability of an employee working in that workplace is lognormal:
+    http://www.haas.berkeley.edu/faculty/pdf/wallace_dynamics.pdf
+    rng: numpy Generator; None uses a fresh unseeded np.random.default_rng()
+    """
+    if x == 0: return np.zeros(0)
+    rng = np.random.default_rng() if rng is None else rng
+    b = rng.lognormal(mean=2,size=x).reshape(-1, 1)
+    return np.sort(normalize(b,norm='l1',axis=0).ravel())
+
 
 
 def read_od(state_code):

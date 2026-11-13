@@ -1,4 +1,4 @@
-from src.tools import new_distance
+from math import sin, cos, sqrt, atan2, radians
 import pandas as pd
 import geopandas as gpd
 from loguru import logger
@@ -176,3 +176,22 @@ def __find_edu_ID__(kx, ky, edu_site_in_buffer, edu, tract_name=None, age=None,
                        f'(all {len(edu_site_in_buffer)} candidate sites full)')
     edu.add(chosen)
     return chosen
+
+
+def new_distance(x1, y1, x2, y2):
+    # approximate radius of earth in km
+    R = 6373.0
+
+    lat1 = radians(x1)
+    long1 = radians(y1)
+    lat2 = radians(x2)
+    long2 = radians(y2)
+
+    dlon = long2 - long1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+    return distance

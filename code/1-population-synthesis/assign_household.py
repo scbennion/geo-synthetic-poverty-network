@@ -132,15 +132,6 @@ def __creat_hhold_id__(tract, df_type):
     return df_type
 
 
-def __find_members__(hhold, people, rng=None):
-    '''
-    1.3 use hholdid and hhhold type to find individuals
-    '''
-    member = __htype_find_members__(hhold['htype'], people, rng)
-
-    return member
-
-
 class _MemberPool:
     """Array views for sequential selection, retaining the population's index order."""
 

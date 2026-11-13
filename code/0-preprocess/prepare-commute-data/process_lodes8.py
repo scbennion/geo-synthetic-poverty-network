@@ -11,7 +11,7 @@ import argparse
 from loguru import logger
 from tqdm import tqdm
 from src.cli import resolve_state_codes
-from src.preprocess_data import download_lodes_2020_data, combine_in_out_county_data
+from pipeline.preprocess.preprocess_data import download_lodes_2020_data, combine_in_out_county_data
 from src.settings import state_dict
 
 

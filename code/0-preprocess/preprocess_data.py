@@ -12,108 +12,6 @@ from loguru import logger
 from src.settings import RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR
 
 
-def get_all_census_shp_name(base_url):
-    """
-    Get the road file names for a specific state.
-
-    Parameters:
-    - base_url (str): The base URL for the road files.
-    - state_fips_code (str): The FIPS code for the state of interest.
-    """
-    try:
-        logger.info(
-            f"Getting census names from {base_url}"
-        )
-        response = requests.get(base_url)
-        response.raise_for_status()
-
-        # Parse the webpage
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # Regex pattern to match the road files for the given state
-        pattern = re.compile(f"tl_2020_[0-9]+_tract.zip")
-
-        # Extract all matching road files
-        census_files = []
-        for link in soup.find_all("a", href=True):
-            match = pattern.match(link["href"])
-            if match:
-                census_files.append(match.group(0))
-
-        logger.info(
-            f"Found {len(census_files)} census files USA"
-        )
-        return census_files
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-
-
-def download_and_prepare_census_shp_data(
-    raw_data_path=RAW_DATA_DIR,
-    interim_data_path=INTERIM_DATA_DIR,
-):
-    """
-    Download and prepare road data for a specific state and save the resulting shapefile.
-
-    Parameters:
-    - state_name (str): The name of the state.
-    - state_fips_code (str): The FIPS code for the state of interest.
-    - raw_data_path (str): The path to the raw road shapefiles.
-                           Default is `src.settings.RAW_DATA_DIR`.
-    - interim_data_path (str): The directory where the resulting shapefile will be saved.
-                               Default is `src.settings.INTERIM_DATA_DIR`.
-    """
-
-    # Check for cached output
-    output_path = f"{interim_data_path}/census/all_census.shp.zip"
-    if os.path.exists(output_path):
-        logger.info(
-            f"Cached output found at {output_path}. Skipping download and processing."
-        )
-        return
-
-    logger.info("Downloading and processing census tract shp data.")
-    # Create the directory if it doesn't exist
-    if not os.path.exists(f"{raw_data_path}/census/"):
-        os.makedirs(f"{raw_data_path}/census/")
-    if not os.path.exists(f"{interim_data_path}/census"):
-        os.makedirs(f"{interim_data_path}/census")
-
-    list_ = []
-    url = "https://www2.census.gov/geo/tiger/TIGER2020/TRACT/"
-
-    census_file_names = get_all_census_shp_name(url)
-
-    for file_name in tqdm(census_file_names):
-        file_path = f"{raw_data_path}/census/{file_name}"
-        # logger.info(
-        #     f"Downloading {file_name} Census Tract Shp data to {file_path}."
-        # )
-        if not os.path.exists(file_path):
-            try:
-                full_url = url + file_name
-                #wget.download(full_url, out=f"{raw_data_path}/road/{state_name}", no_check_certificate=True)
-                download_file(full_url, f"{raw_data_path}/census/{file_name}", verify_ssl=False)
-            except Exception as e:
-                if str(e) == "HTTP Error 404: Not Found":
-                    continue
-                else:
-                    logger.error(f"Error {e} when downloading file {file_name}")
-                    continue
-        try:
-            gdf = gpd.read_file(file_path, index_col=None, header=0)
-            list_.append(gdf)
-        except Exception as e:
-            logger.error(f"Error {e} when reading file {file_name}")
-
-    frame = pd.concat(list_, axis=0, ignore_index=True)
-
-    # Save the processed data
-    frame.to_file(output_path)
-    logger.info(f"Saved census data to {output_path}")
-
 def get_road_file_names(base_url, state_fips_code):
     """
     Get the road file names for a specific state.
@@ -214,8 +112,6 @@ def download_and_prepare_road_data(
     return output_path
 
 
-# old name, kept so existing callers keep working
-richard_download_and_prepare_road_data = download_and_prepare_road_data
 
 
 def process_interim_road_data(
@@ -231,7 +127,7 @@ def process_interim_road_data(
     MTFCC, comp, geometry; CRS of the TIGER input, EPSG:4269).
 
     Cleaning is the pure-Python replacement for the former GRASS GIS step, see
-    ``src.clean_roads.clean_road_network``.
+    ``pipeline.preprocess.road_cleaning.clean_road_network``.
 
     Parameters:
     - state_name (str): state abbreviation, e.g. 'UT'.
@@ -242,7 +138,7 @@ def process_interim_road_data(
 
     Returns the output path.
     """
-    from src.clean_roads import clean_road_network
+    from pipeline.preprocess.road_cleaning import clean_road_network
 
     output_name = output_name or state_name
     output_dir = f"{processed_data_path}/road"
@@ -407,11 +303,6 @@ def tract_geoid(value):
     return s.zfill(11)
 
 
-def county_fips(geoid):
-    """5-digit county FIPS (state + county) of a tract GEOID, leading zeros preserved."""
-    return tract_geoid(geoid)[:5]
-
-
 def tract_and_county_jobs(od):
     """
     Jobs located in each work tract (J_t) and in each county (J_c) from an OD table
@@ -453,51 +344,3 @@ def get_number_of_wp(data, od, campany_df, state_code, error_tract, jobs=None):
         logger.info(f"{tract_number} has issue")
         error_tract.append(tract_number)
         return 0
-
-
-# Add starting and ending age for schools
-def __school_start_age__(row):
-    '''
-    Assign School starting age and end age based on school type School
-    Function to get start age for schools
-    :param row:
-    :return: age
-    '''
-    if row.LEVEL in ['Primary', 'Elementary']:
-        start_a = 5
-
-    elif row.LEVEL in ['Middle']:
-        start_a = 12
-
-    elif row.LEVEL in ['Secondary']:
-        start_a = 12
-
-    elif row.LEVEL in ['High']:
-        start_a = 15
-
-    else:
-        start_a = 5
-    return start_a  # , end_a
-
-
-def __school_end_age__(row):
-    '''
-    Function to get end age for schools
-    :param row:
-    :return: age
-    '''
-    if row.LEVEL in ['Primary', 'Elementary']:
-        end_a = 11
-
-    elif row.LEVEL in ['Middle']:
-        end_a = 14
-
-    elif row.LEVEL in ['Secondary']:
-        end_a = 17
-
-    elif row.LEVEL in ['High']:
-        end_a = 17
-
-    else:
-        end_a = 17
-    return end_a

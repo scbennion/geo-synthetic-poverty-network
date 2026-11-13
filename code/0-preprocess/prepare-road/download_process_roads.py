@@ -10,7 +10,7 @@ import argparse
 from loguru import logger
 
 from src.cli import add_geography_args, resolve_geography, run_name
-from src.preprocess_data import download_and_prepare_road_data
+from pipeline.preprocess.preprocess_data import download_and_prepare_road_data
 from src.settings import INTERIM_DATA_DIR, RAW_DATA_DIR, state_dict
 
 

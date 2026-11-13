@@ -14,10 +14,10 @@ Source (--source epa2015, the default and the one Jiang et al. 2024 cite, ref. 2
     daycare  <- DayCareCenters                  (no ENROLLMENT; POPULATION is used)
     not used:   CollegesUniversities, SupplementalColleges (school assignment covers ages 5-17 only)
 
-Output fields read by src/assign_education_site.py:
+Output fields read by pipeline.population.assign_education_site:
   eduID, geometry, LATITUDE, LONGITUDE, s_age, e_age, ENROLLMENT, count (=0).
   eduID is '<state FIPS>s<n>' for schools and '<state FIPS>d<n>' for daycare, because
-  src/create_social_networks.py::wp_kind classifies wp ids by the letter after the
+  pipeline.networks.create_social_networks.wp_kind classifies wp ids by the letter after the
   leading digits ('s' school, 'd' daycare, 'w' work, 'h' home).
   Extra provenance columns: SRC_LAYER, SRC_ID, NAME, LEVEL, ENROLLMENT_SRC, ENR_MISSING.
 
@@ -37,7 +37,6 @@ import requests
 from loguru import logger
 
 from src.cli import resolve_state_codes
-from src.preprocess_data import __school_start_age__, __school_end_age__
 from src.settings import RAW_DATA_DIR, PROCESSED_DATA_DIR, state_dict
 
 EPA2015_URL = 'https://edg.epa.gov/data/Public/OEI/ORNL_Education/ORNL_Education.zip'
@@ -57,6 +56,55 @@ DAYCARE_S_AGE, DAYCARE_E_AGE = 0, 4
 
 OUTPUT_COLUMNS = ['eduID', 'SRC_LAYER', 'SRC_ID', 'NAME', 'LEVEL', 'LATITUDE', 'LONGITUDE',
                   's_age', 'e_age', 'ENROLLMENT', 'ENROLLMENT_SRC', 'ENR_MISSING', 'count', 'geometry']
+
+
+
+def __school_start_age__(row):
+    '''
+    Assign School starting age and end age based on school type School
+    Function to get start age for schools
+    :param row:
+    :return: age
+    '''
+    if row.LEVEL in ['Primary', 'Elementary']:
+        start_a = 5
+
+    elif row.LEVEL in ['Middle']:
+        start_a = 12
+
+    elif row.LEVEL in ['Secondary']:
+        start_a = 12
+
+    elif row.LEVEL in ['High']:
+        start_a = 15
+
+    else:
+        start_a = 5
+    return start_a  # , end_a
+
+
+def __school_end_age__(row):
+    '''
+    Function to get end age for schools
+    :param row:
+    :return: age
+    '''
+    if row.LEVEL in ['Primary', 'Elementary']:
+        end_a = 11
+
+    elif row.LEVEL in ['Middle']:
+        end_a = 14
+
+    elif row.LEVEL in ['Secondary']:
+        end_a = 17
+
+    elif row.LEVEL in ['High']:
+        end_a = 17
+
+    else:
+        end_a = 17
+    return end_a
+
 
 
 def download_epa2015(dest=EPA2015_ZIP, url=EPA2015_URL):

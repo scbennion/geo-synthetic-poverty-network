@@ -15,10 +15,10 @@ import pandas as pd
 import pytest
 from shapely.geometry import LineString, box
 
-import src.preprocess_data as pp
-from src.clean_roads import (clean_road_network, drop_duplicate_lines, label_components,
+import pipeline.preprocess.preprocess_data as pp
+from pipeline.preprocess.road_cleaning import (clean_road_network, drop_duplicate_lines, label_components,
                              node_lines, snap_vertices)
-from src.create_space import (HOME_SPACING_M, OUTPUT_CRS, PLACEMENT_CRS, WORK_SPACING_M,
+from pipeline.population.create_space import (HOME_SPACING_M, OUTPUT_CRS, PLACEMENT_CRS, WORK_SPACING_M,
                               __create_home_location__, __create_work_location__)
 
 REPO = Path(__file__).resolve().parent.parent
@@ -216,7 +216,7 @@ def test_road_scripts_import_without_grass(script):
 
 
 def test_no_tls_suppression_left_in_road_path():
-    for path in [REPO / 'src' / 'preprocess_data.py', *ROAD_SCRIPTS.glob('*.py')]:
+    for path in [REPO / 'code' / '0-preprocess' / 'preprocess_data.py', *ROAD_SCRIPTS.glob('*.py')]:
         text = path.read_text()
         assert 'InsecureRequestWarning' not in text
         assert 'GRASSBIN' not in text

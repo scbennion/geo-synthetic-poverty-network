@@ -1,5 +1,7 @@
 # Architecture
 
+Code is organized by pipeline step. Each numbered folder contains its commands and the modules that support that step. `src/` holds the support used across steps.
+
 ## Current flow
 
 ```mermaid
@@ -13,18 +15,32 @@ flowchart LR
   F --> G[Neo4j knowledge graph]
 ```
 
-The numbered `code/` directories contain executable drivers. `src/` is the current importable package of shared functions. The package has not been renamed or reorganized. See the [pipeline guide](pipeline.md) for commands and the [data interfaces](input-data.md) for files passed between stages.
-
-| Responsibility | Current location | Boundary |
+| Location | Responsibilities | Python imports |
 | --- | --- | --- |
-| Input preparation | `code/0-preprocess/`, `src/census_prep.py`, `src/clean_roads.py`, `src/preprocess_data.py` | Source downloads and transformations into synthesis inputs |
-| Population synthesis | `code/1-population-synthesis/`, individual/household/work/education and spatial modules in `src/` | Generate people and assign households and places |
-| Contacts | `code/2-social-networks/`, `src/create_social_networks.py` | Group people by assigned sites and generate modeled ties |
-| Validation | `code/3-validation/`, validation helpers in `src/` | Compare generated demographics and spatial counts with reference data |
-| Graph export | `code/4-knowledge-graph/` | Export generated people, places, and contacts for Neo4j |
-| Shared execution support | `src/settings.py`, `src/cli.py`, `src/seeding.py`, `src/population_io.py`, `src/timing.py` | Paths, geographic selection, seeds, population reads, and diagnostics |
-| Tests | `tests/` | Existing fixtures and checks for imports, handoffs, reproducibility, and component behavior |
+| `code/0-preprocess/` | Downloads, Census joins, commuting/workplace preparation, road cleaning, and education inputs | `pipeline.preprocess` |
+| `code/1-population-synthesis/` | People, households, work/education assignments, spatial placement, per-tract verification, and population-location visualization | `pipeline.population` |
+| `code/2-social-networks/` | Household, school, daycare, and workplace contacts | `pipeline.networks` |
+| `code/3-validation/` | Demographic, household, PUMS, and block-group comparisons and their plots | `pipeline.validation` |
+| `code/4-knowledge-graph/` | Neo4j export and graph summary scripts | `pipeline.graph` |
+| `src/` | Settings, command-line geography, seeds, timing, and population-file reading | `src` |
+| `tests/` | Component, import/packaging, file-handoff, and reproducibility checks | Test modules |
+
+The existing command paths are unchanged. For example, synthesis still runs through `code/1-population-synthesis/run-synthesis-by-state.py`. See the [pipeline guide](pipeline.md) for commands and [input data](input-data.md) for file handoffs.
+
+## Imports and shared code
+
+The package mapping in [pyproject.toml](../pyproject.toml) gives the numbered folders readable import names. For example:
+
+```python
+from pipeline.population.create_individuals import create_individuals
+from pipeline.networks.create_social_networks import create_network
+from src.population_io import load_population
+```
+
+Install or refresh the local package with `python -m pip install -e .` after changing this mapping. Scripts and tests then use the same imports from any working directory. The `pipeline` packages use implicit namespaces, so `code/` does not need an `__init__.py` that would shadow Python's standard-library `code` module. Import tests check both an editable checkout and a normal wheel build.
+
+Small helpers with one production caller live in that caller: the education input script owns its school-age rules, and the workplace JSON script owns its probability helper. Substantial step-specific logic stays in a module beside the step's commands. Synthesis result assembly lives in `code/1-population-synthesis/results.py`; population reading shared by later steps lives in `src/population_io.py`.
+
+Population and household validation share the table-building and plotting helpers in `code/3-validation/after_validation_functions.py`. External PUMS and block-group comparisons remain in separate modules. The standalone 3D population plotting module is available for manual exploration.
 
 The paper's generation steps and these directories use different numbering: paper Steps 1 and 2 both occur in population synthesis; paper Step 3 occurs in contact generation. Validation and export are additional repository stages.
-
-Some responsibilities currently overlap. In particular, `src/tools.py` combines workplace probabilities, validation, result collection, and spatial helpers; `src/preprocess_data.py` combines multiple sources and transformations. The synthesis driver also contains processing logic. These responsibilities are currently shared rather than isolated into separate modules.

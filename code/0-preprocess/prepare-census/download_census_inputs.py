@@ -21,7 +21,7 @@ import os
 
 from loguru import logger
 
-from src import census_prep as cp
+from pipeline.preprocess import census_prep as cp
 from src.cli import resolve_state_codes
 from src.settings import RAW_DATA_DIR
 

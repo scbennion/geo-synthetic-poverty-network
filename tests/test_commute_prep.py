@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import box
 
-import src.preprocess_data as pp
+import pipeline.preprocess.preprocess_data as pp
 
 ROOT = Path(__file__).resolve().parent.parent
 PREP = ROOT / 'code' / '0-preprocess' / 'prepare-commute-data'

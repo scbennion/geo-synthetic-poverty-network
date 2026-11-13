@@ -1,13 +1,11 @@
+"""Population and household validation tables, file readers, and plots."""
 import pandas as pd
 import geopandas as gpd
 import numpy as np
 import os
 
-from scipy import stats
 import matplotlib.pyplot as plt
 from loguru import logger
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from math import sqrt
 
 from src.cli import in_counties
 
@@ -54,30 +52,6 @@ def load_census_data(census_path, error_census_path, state_abbreviation, state_c
         logger.warning(f"Census data file not found: {census_path}")
 
 
-def load_population_data(population_path, state_abbreviation):
-    if os.path.exists(population_path):
-        logger.info(f"Loading {state_abbreviation} population..")
-        population_gdf = gpd.read_file(population_path)
-
-        #logger.info(f"Loaded Population data - Count before removing nans in 'id': {len(population_gdf)}")
-        #population_gdf = population_gdf.dropna(subset=['id'])
-        logger.info(f"{state_abbreviation} Population Size': {len(population_gdf)}")
-        return population_gdf
-    else:
-        logger.warning(f"Population data file not found: {population_path}")
-
-def load_workplace_data(workplace_path, state_abbreviation):
-    if os.path.exists(workplace_path):
-        logger.info(f"Loading {state_abbreviation} workplaces..")
-        workplace_gdf = gpd.read_file(workplace_path)
-
-        logger.info(f"Loaded workplace data - Count before removing nans in 'id': {len(workplace_gdf)}")
-        workplace_gdf = workplace_gdf.dropna(subset=['wp'])
-        logger.info(f"Count after removing nans in 'wp': {len(workplace_gdf)}")
-        return workplace_gdf
-    else:
-        logger.warning(f"Population data file not found: {workplace_path}")
-
 def load_clean_population_data(population_path, state_abbreviation):
     if os.path.exists(population_path):
         logger.info(f"Loading {state_abbreviation} population..")
@@ -90,7 +64,6 @@ def load_clean_population_data(population_path, state_abbreviation):
             nan_count_id = population_gdf['id'].isna().sum()
             logger.info(f'Number of NaN values in the -id- column: {nan_count_id}')
 
-            # population_gdf['wp'].fillna(population_gdf['hhold'], inplace=True)
             population_gdf['wp'] = population_gdf['wp'].fillna(population_gdf['hhold'])
             nan_count_wp = population_gdf['wp'].isna().sum()
             logger.info(f'Number of NaN values in the -wp- column: {nan_count_wp}')
@@ -112,20 +85,15 @@ def load_clean_population_data(population_path, state_abbreviation):
 # Get the Age Group Tables
 def verifiy_age_group(census, goodCensus, pop):
     # Get each group popualtion from orignal census
-    # censusAge = census.iloc[:, 26:63].drop('DP0010039',1).sum()
-    # censusAge = census.iloc[:, 29:63].drop('DP0010039',1).sum()
     censusAge = census.iloc[:, 14:51].drop('DP1_0049C', axis=1).sum()
-    # print(censusAge.columns())
     censusMaleAgeList = censusAge[:18].tolist()  # male list
     censusFemaleAgeList = censusAge[18:].tolist()  # female list
-    #print(censusMaleAgeList, "\n", censusFemaleAgeList)
 
     # Get each group popualtion from good census tract
     goodCensusAge = goodCensus.iloc[:, 14:51].drop('DP1_0049C', axis=1).sum()
     goodCensusMaleAgeList = goodCensusAge[:18].tolist()  # male list
     goodCensusFemaleAgeList = goodCensusAge[18:].tolist()  # female list"
 
-    #print(goodCensusMaleAgeList, "\n", goodCensusFemaleAgeList)
 
     # get male and female dataframe
 
@@ -139,16 +107,12 @@ def verifiy_age_group(census, goodCensus, pop):
 
     for lowerLimit in range(0, 85, 5):
         upperLimit = lowerLimit + 4
-        # print("Age lower limit is: ",lowerLimit, "; Upper Limits is: ", upperLimit)
-        # a = 'AG'+ str(i+1)
 
         typeAge = 'Age ' + str(lowerLimit) + ' to ' + str(upperLimit)
-        # print(typeAge)
         typeList.append(typeAge)
 
         mAgeGroup = len(maleDframe[(maleDframe.age >= lowerLimit) & (maleDframe.age <= upperLimit)])
         fAgeGroup = len(femaleDframe[(femaleDframe.age >= lowerLimit) & (femaleDframe.age <= upperLimit)])
-        # print("Age(",lowerLimit, "to", upperLimit, ") male population is ",mAgeGroup," female population is", fAgeGroup,"\n")
 
         mAgeGroupList.append(mAgeGroup)  # male add
         fAgeGroupList.append(fAgeGroup)  # female add
@@ -162,9 +126,6 @@ def verifiy_age_group(census, goodCensus, pop):
     f85Plus = len(femaleDframe[femaleDframe.age >= 85])
     fAgeGroupList.append(f85Plus)
 
-    # print (typeList)
-    # print (mAgeGroupList)
-    # print (fAgeGroupList)
 
     resultsDataFram = pd.DataFrame()
     resultsDataFrame = pd.DataFrame({'Type': typeList, 'SPop_Male': mAgeGroupList, 'SPop_Female': fAgeGroupList,
@@ -181,9 +142,6 @@ def plot_ver_age_df(data, save_path):
     index = np.arange(len(data['Type']))
     width = 0.13  # Width of the bars
 
-    # Calculating the percentage differences
-    #data['Perc_Diff_Male'] = ((data['SPop_Male'] - data['Census_Male']) / data['Census_Male']) * 100
-    #data['Perc_Diff_Female'] = ((data['SPop_Female'] - data['Census_Female']) / data['Census_Female']) * 100
 
     # Plotting Male populations
     ax.bar(index, data['SPop_Male'] / 1000, width, color='#4474C4', label='Synthetic Male Population')
@@ -221,8 +179,6 @@ def get_hholde_type_amount(census, goodcensus, s_pop):
     spop_hhold_amount = []
     for i in range(0, 11):
         spop_hhold_amount.append(len(hhold_df[hhold_df.htype == i]))
-        # print(i)
-    # print(spop_hhold_amount)
     resultsDataFrame = pd.DataFrame({'Spop_hhold': spop_hhold_amount, 'Census_hhold': census_hhold_amount,
                                      'Goodcensus_hhold': goodcensus_hhold_amount})
 
@@ -299,7 +255,6 @@ def plot_hhold_df(data, save_path):
 
     # Setting x-axis ticks to be in the middle of the group of bars for each age group
     ax.set_xticks(index + width)
-    # ax.set_xticklabels(data.index, fontsize=15, rotation=45)
     ax.set_xticklabels(data.index, fontsize=15)
     # Displaying the legend
     ax.legend(fontsize=15)
@@ -307,37 +262,6 @@ def plot_hhold_df(data, save_path):
     # Save the figure
     plt.savefig(save_path, format='png', dpi=300)  # Adjust format and DPI as needed
     plt.close(fig)
-    #plt.show()
-
-
-def get_hhold_mae_rmse(data, Predict_column, Ob_column):
-    actual_hhold = data[Ob_column]
-    predicted_hhold = data[Predict_column]
-
-    # Calculate MAE and RMSE for household
-    mae_hhold = mean_absolute_error(actual_hhold, predicted_hhold)
-    rmse_hhold = sqrt(mean_squared_error(actual_hhold, predicted_hhold))
-
-    logger.info(f"Household MAE: {mae_hhold}, Household RMSE: {rmse_hhold}")
-
-
-def get_age_mae_rmse(data, Male_column, Female_column):
-    # Extract the relevant columns for comparison
-    actual_male = data[Male_column]
-    actual_female = data[Female_column]
-
-    predicted_male = data['SPop_Male']
-    predicted_female = data['SPop_Female']
-
-    # Calculate MAE and RMSE for male data
-    mae_male = mean_absolute_error(actual_male, predicted_male)
-    rmse_male = sqrt(mean_squared_error(actual_male, predicted_male))
-
-    # Calculate MAE and RMSE for female data
-    mae_female = mean_absolute_error(actual_female, predicted_female)
-    rmse_female = sqrt(mean_squared_error(actual_female, predicted_female))
-
-    logger.info(f"MAE Male {mae_male}, RMSE Male {rmse_male}, MAE Feale {mae_female}, RMSE Feale {rmse_female}")
 
 
 def verifiy_avg_hhold_size(all_census, good_census, s_pop):

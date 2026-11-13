@@ -8,7 +8,25 @@ version = "0.1.0"
 requires-python = ">=3.12"
 
 [tool.setuptools]
-packages = ["src"]
+packages = [
+    "src",
+    "pipeline",
+    "pipeline.preprocess",
+    "pipeline.population",
+    "pipeline.networks",
+    "pipeline.validation",
+    "pipeline.graph",
+]
+
+# Keep the numbered command folders while exposing readable Python imports.
+# These are namespace packages: code/ must not shadow Python's standard code module.
+[tool.setuptools.package-dir]
+pipeline = "code"
+"pipeline.preprocess" = "code/0-preprocess"
+"pipeline.population" = "code/1-population-synthesis"
+"pipeline.networks" = "code/2-social-networks"
+"pipeline.validation" = "code/3-validation"
+"pipeline.graph" = "code/4-knowledge-graph"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

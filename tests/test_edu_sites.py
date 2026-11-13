@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point, box
 
-from src.assign_education_site import __assign_education_site__
+from pipeline.population.assign_education_site import __assign_education_site__
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / 'code' / '0-preprocess' / 'prepare-edu' / 'build_edu_sites.py'

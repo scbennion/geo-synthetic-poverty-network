@@ -42,14 +42,16 @@ flowchart LR
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt pytest
+python -m pip install -e .                 # install the shared support and pipeline stages
 python -m pytest                           # about 1.5 minutes
 ```
 
-**Setup gap:** the local-package `-e .` entry is currently commented out in `requirements.txt`.
-The commands above do not install this repository as the `src` package. The drivers require
-that package to be importable in your configured environment. Dependency completeness,
-installation fixes, and environment locking are deferred; this documentation change does
-not claim that a fresh installation has been verified.
+The local-package entry in `requirements.txt` is commented out, so install the project explicitly
+with the separate editable-install command above. Repeat that command after changing package
+locations. It makes the numbered stage folders importable as `pipeline.preprocess`,
+`pipeline.population`, and the other stage names described in [architecture](architecture.md).
+Dependency completeness and environment locking remain separate work; installing this project
+does not install or pin the full scientific environment.
 
 All scripts find their data through `src/settings.py`. By default that is `<repo>/data/`, which
 git ignores. To keep data elsewhere, set `GSPN_DATA_DIR` before running anything:
