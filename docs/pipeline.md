@@ -171,8 +171,10 @@ on all 18 files.
 
 ## 4. Export the run for Neo4j
 
-Before exporting, confirm that `../data-pre-reorganization` exists and matches
-the run. The current exporter reads this CSV directly, while synthesis only writes it in its
+Before exporting, confirm that `data/results-data/ut/ut_c035_population.csv` exists and matches
+the run (adjust the state and run name for other areas). Paths default to the repository's
+`data/` folder; `GSPN_DATA_DIR` overrides that root. The exporter reads this CSV directly,
+while synthesis only writes it in its
 missing-ID/`wp` cleanup branch. A GeoPackage alone is sufficient for contacts/validation but
 does not satisfy the exporter. This [handoff gap](input-data.md#stage-handoffs) remains
 for later code work; no automatic conversion is implemented here.
@@ -181,7 +183,7 @@ for later code work; no automatic conversion is implemented here.
 python -m pipeline.knowledge_graph.export_neo4j_csv --state ut --counties 035 --seed 42
 ```
 
-This writes one CSV per node label and relationship type to `../data-pre-reorganization`, plus
+This writes one CSV per node label and relationship type to `data/neo4j-import/ut_c035/`, plus
 `import.args`, the argument file for the bulk importer. `--seed` is only recorded on the graph's
 `Run` node. Pass the seed the run actually used.
 
