@@ -4,10 +4,43 @@ import sys
 from pathlib import Path
 
 import geopandas as gpd
+import pytest
 from shapely.geometry import box
 
 ROOT = Path(__file__).resolve().parent.parent
-SYNTH = ROOT / 'code' / '1-population-synthesis' / 'run-synthesis-by-state.py'
+SYNTH = 'pipeline.population_synthesis.run_synthesis_by_state'
+
+CLI_MODULES = [
+    'pipeline.preprocess.prepare_census.download_census_inputs',
+    'pipeline.preprocess.prepare_census.process_census_shp',
+    'pipeline.preprocess.prepare_commute.process_lodes8',
+    'pipeline.preprocess.prepare_commute.process_cbp',
+    'pipeline.preprocess.prepare_commute.add_tract_workplaces',
+    'pipeline.preprocess.prepare_commute.build_tract_workplace_json',
+    'pipeline.preprocess.prepare_roads.download_process_roads',
+    'pipeline.preprocess.prepare_roads.clean_roads',
+    'pipeline.preprocess.prepare_education.build_edu_sites',
+    'pipeline.population_synthesis.run_synthesis_by_state',
+    'pipeline.social_networks.create_edu_hhold_get_work_pop',
+    'pipeline.social_networks.create_work_networks',
+    'pipeline.validation.validation_population',
+    'pipeline.validation.validation_hhold',
+    'pipeline.validation.validation_tract_avg_hhold',
+    'pipeline.validation.validation_external_cosine',
+    'pipeline.validation.validation_external_sc_bg',
+    'pipeline.knowledge_graph.export_neo4j_csv',
+]
+
+
+@pytest.mark.parametrize('module', CLI_MODULES)
+def test_cli_help_without_pythonpath(module, tmp_path):
+    env = dict(os.environ, GSPN_DATA_DIR=str(tmp_path / 'data'))
+    env.pop('PYTHONPATH', None)
+    result = subprocess.run([sys.executable, '-m', module, '--help'], cwd=ROOT, env=env,
+                            capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    assert 'usage:' in result.stdout
+    assert not (tmp_path / 'data').exists()
 
 # two Salt Lake (035) tracts, one Utah County (049) tract, one empty tract
 TRACTS = {'49035100100': 10, '49035100200': 20, '49049000100': 30, '49035999999': 0}
@@ -25,8 +58,9 @@ def _write_fixture(data_dir):
 def _dry_run(tmp_path, *args):
     _write_fixture(tmp_path)
     env = dict(os.environ, GSPN_DATA_DIR=str(tmp_path))
-    return subprocess.run([sys.executable, str(SYNTH), '--dry-run', *args],
-                          cwd=SYNTH.parent, env=env, capture_output=True, text=True)
+    env.pop('PYTHONPATH', None)
+    return subprocess.run([sys.executable, '-m', SYNTH, '--dry-run', *args],
+                          cwd=ROOT, env=env, capture_output=True, text=True)
 
 
 def test_dry_run_one_county(tmp_path):

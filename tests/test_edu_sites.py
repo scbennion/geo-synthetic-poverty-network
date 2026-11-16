@@ -1,5 +1,4 @@
-"""Tests for code/0-preprocess/prepare-edu/build_edu_sites.py on small synthetic raw layers (no network)."""
-import importlib.util
+"""Tests for pipeline/preprocess/prepare_education/build_edu_sites.py on small synthetic raw layers (no network)."""
 import os
 import random
 import subprocess
@@ -12,21 +11,12 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point, box
 
-from src.assign_education_site import __assign_education_site__
+from pipeline.population_synthesis.assign_education_site import __assign_education_site__
+from pipeline.preprocess.prepare_education import build_edu_sites as bes
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = ROOT / 'code' / '0-preprocess' / 'prepare-edu' / 'build_edu_sites.py'
+SCRIPT = ROOT / 'pipeline' / 'preprocess' / 'prepare_education' / 'build_edu_sites.py'
 REQUIRED = ['eduID', 'geometry', 'LATITUDE', 'LONGITUDE', 's_age', 'e_age', 'ENROLLMENT', 'count']
-
-
-def _load_module():
-    spec = importlib.util.spec_from_file_location('build_edu_sites', SCRIPT)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
-bes = _load_module()
 
 
 def _layer(rows, id_col):
@@ -164,8 +154,9 @@ def test_outputs_work_with_assignment_module(built):
 def test_cli_default_paths(tmp_path):
     """Driver reads RAW_DATA_DIR/edu/epa2015/ORNL_Education.zip and writes PROCESSED_DATA_DIR/edu/."""
     _write_epa_zip(tmp_path / 'raw-data' / 'edu' / 'epa2015' / 'ORNL_Education.zip')
-    env = dict(os.environ, GSPN_DATA_DIR=str(tmp_path), PYTHONPATH=str(ROOT))
-    result = subprocess.run([sys.executable, str(SCRIPT), '--state', 'ut'], env=env,
+    env = dict(os.environ, GSPN_DATA_DIR=str(tmp_path))
+    env.pop('PYTHONPATH', None)
+    result = subprocess.run([sys.executable, '-m', '.'.join(SCRIPT.relative_to(ROOT).with_suffix('').parts), '--state', 'ut'], env=env,
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     for kind in ('school', 'daycare'):
@@ -173,8 +164,9 @@ def test_cli_default_paths(tmp_path):
 
 
 def test_cli_missing_raw_fails_with_hint(tmp_path):
-    env = dict(os.environ, GSPN_DATA_DIR=str(tmp_path), PYTHONPATH=str(ROOT))
-    result = subprocess.run([sys.executable, str(SCRIPT), '--state', 'ut'], env=env,
+    env = dict(os.environ, GSPN_DATA_DIR=str(tmp_path))
+    env.pop('PYTHONPATH', None)
+    result = subprocess.run([sys.executable, '-m', '.'.join(SCRIPT.relative_to(ROOT).with_suffix('').parts), '--state', 'ut'], env=env,
                             capture_output=True, text=True)
     assert result.returncode != 0
     assert 'ORNL_Education.zip' in result.stderr and '--download' in result.stderr

@@ -8,9 +8,10 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point, box
 
-from src.assign_household import __assign_left_pop_hhold__, _left_household_choices
-from src.tools import check_urban, classify_urban
-from src.assign_household import (
+from pipeline.population_synthesis.assign_household import __assign_left_pop_hhold__, _left_household_choices
+from pipeline.population_synthesis.create_space import check_urban
+from pipeline.population_synthesis.create_space import classify_urban
+from pipeline.population_synthesis.assign_household import (
     __htype_find_members__, __get_kids_or_friend__, _MemberPool,
     _write_household_members, _write_household_members_scalar,
 )
